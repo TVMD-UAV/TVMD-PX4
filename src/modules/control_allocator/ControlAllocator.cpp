@@ -270,6 +270,10 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessHelicopterCoaxial(this);
 			break;
 
+		case EffectivenessSource::VTOL_TVMD:
+			tmp = new ActuatorEffectivenessVTOL_TVMD(this);
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;
