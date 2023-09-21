@@ -40,6 +40,9 @@ functions:
 
     # Add your own here:
     #MyCustomFunction: 10000
+    TVMD_Module:
+      start: 10003
+      count: 6
 
   pwm_fmu: # These only exist on FMU PWM pins
     Camera_Trigger:

@@ -1,0 +1,193 @@
+#!/bin/sh
+#
+# @name Generic VTOL TVMD
+#
+# @type VTOL TVMD
+#
+# @maintainer Sciyen <sciyen.ycc@gmail.com>
+#
+
+. ${R}etc/init.d/rc.vtol_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=tvmd}
+
+param set-default SIM_GZ_EN 1
+
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 0
+param set-default SENS_EN_MAGSIM 1
+param set-default SENS_EN_ARSPDSIM 1
+
+# TODO: Enable motor failure detection when the
+# VTOL no longer reports 0A for all ESCs in SITL
+param set-default FD_ACT_EN 0
+param set-default FD_ACT_MOT_TOUT 500
+
+param set-default MAV_TYPE 21
+
+param set-default CA_AIRFRAME 12
+
+# Module settings
+param set-default CA_MD_COUNT 4
+
+param set-default CA_MD1_PX -1.0
+param set-default CA_MD1_PY 1.0
+param set-default CA_MD1_PZ 0
+param set-default CA_MD1_AZ 0
+
+param set-default CA_MD2_PX 1.0
+param set-default CA_MD2_PY 1.0
+param set-default CA_MD2_PZ 0
+param set-default CA_MD2_AZ 0
+
+param set-default CA_MD3_PX -1.0
+param set-default CA_MD3_PY -1.0
+param set-default CA_MD3_PZ 0
+param set-default CA_MD3_AZ 0
+
+param set-default CA_MD4_PX 1.0
+param set-default CA_MD4_PY -1.0
+param set-default CA_MD4_PZ 0
+param set-default CA_MD4_AZ 0
+
+# Rotor settins
+param set-default CA_ROTOR_COUNT 8
+
+param set-default CA_ROTOR0_KM -0.05
+param set-default CA_ROTOR0_PX 0
+param set-default CA_ROTOR0_PY 0
+param set-default CA_ROTOR0_PZ 0.2
+param set-default CA_ROTOR0_TILT 1
+
+param set-default CA_ROTOR1_KM 0.05
+param set-default CA_ROTOR1_PX 0
+param set-default CA_ROTOR1_PY 0
+param set-default CA_ROTOR1_PZ -0.2
+param set-default CA_ROTOR1_TILT 2
+
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR2_PX 0
+param set-default CA_ROTOR2_PY 0
+param set-default CA_ROTOR2_PZ 0.2
+param set-default CA_ROTOR2_TILT 3
+
+param set-default CA_ROTOR3_KM 0.05
+param set-default CA_ROTOR3_PX 0
+param set-default CA_ROTOR3_PY 0
+param set-default CA_ROTOR3_PZ -0.2
+param set-default CA_ROTOR3_TILT 4
+
+param set-default CA_ROTOR4_KM -0.05
+param set-default CA_ROTOR4_PX 0
+param set-default CA_ROTOR4_PY 0
+param set-default CA_ROTOR4_PZ 0.2
+param set-default CA_ROTOR4_TILT 5
+
+param set-default CA_ROTOR5_KM 0.05
+param set-default CA_ROTOR5_PX 0
+param set-default CA_ROTOR5_PY 0
+param set-default CA_ROTOR5_PZ -0.2
+param set-default CA_ROTOR5_TILT 6
+
+param set-default CA_ROTOR6_KM -0.05
+param set-default CA_ROTOR6_PX 0
+param set-default CA_ROTOR6_PY 0
+param set-default CA_ROTOR6_PZ 0.2
+param set-default CA_ROTOR6_TILT 7
+
+param set-default CA_ROTOR7_KM 0.05
+param set-default CA_ROTOR7_PX 0
+param set-default CA_ROTOR7_PY 0
+param set-default CA_ROTOR7_PZ -0.2
+param set-default CA_ROTOR7_TILT 8
+
+# Tilting servos
+param set-default CA_SV_TL_COUNT 8
+
+param set-default CA_SV_TL0_MINA -30
+param set-default CA_SV_TL0_MAXA 30
+param set-default CA_SV_TL0_TD 0
+param set-default CA_SV_TL0_CT 1
+
+param set-default CA_SV_TL1_MINA -30
+param set-default CA_SV_TL1_MAXA 30
+param set-default CA_SV_TL1_TD 90
+param set-default CA_SV_TL1_CT 1
+
+param set-default CA_SV_TL2_MINA -30
+param set-default CA_SV_TL2_MAXA 30
+param set-default CA_SV_TL2_TD 0
+param set-default CA_SV_TL2_CT 1
+
+param set-default CA_SV_TL3_MINA -30
+param set-default CA_SV_TL3_MAXA 30
+param set-default CA_SV_TL3_TD 90
+param set-default CA_SV_TL3_CT 1
+
+param set-default CA_SV_TL4_MINA -30
+param set-default CA_SV_TL4_MAXA 30
+param set-default CA_SV_TL4_TD 0
+param set-default CA_SV_TL4_CT 1
+
+param set-default CA_SV_TL5_MINA -30
+param set-default CA_SV_TL5_MAXA 30
+param set-default CA_SV_TL5_TD 90
+param set-default CA_SV_TL5_CT 1
+
+param set-default CA_SV_TL6_MINA -30
+param set-default CA_SV_TL6_MAXA 30
+param set-default CA_SV_TL6_TD 0
+param set-default CA_SV_TL6_CT 1
+
+param set-default CA_SV_TL7_MINA -30
+param set-default CA_SV_TL7_MAXA 30
+param set-default CA_SV_TL7_TD 90
+param set-default CA_SV_TL7_CT 1
+
+# Simulations Motor Output Settins
+
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_FUNC2 102
+param set-default SIM_GZ_EC_FUNC3 103
+param set-default SIM_GZ_EC_FUNC4 104
+param set-default SIM_GZ_EC_FUNC5 105
+param set-default SIM_GZ_EC_FUNC6 106
+param set-default SIM_GZ_EC_FUNC7 107
+param set-default SIM_GZ_EC_FUNC8 108
+
+param set-default SIM_GZ_EC_MIN1 150
+param set-default SIM_GZ_EC_MIN2 150
+param set-default SIM_GZ_EC_MIN3 150
+param set-default SIM_GZ_EC_MIN4 150
+param set-default SIM_GZ_EC_MIN5 150
+param set-default SIM_GZ_EC_MIN6 150
+param set-default SIM_GZ_EC_MIN7 150
+param set-default SIM_GZ_EC_MIN8 150
+
+param set-default SIM_GZ_EC_MAX1 1000
+param set-default SIM_GZ_EC_MAX2 1000
+param set-default SIM_GZ_EC_MAX3 1000
+param set-default SIM_GZ_EC_MAX4 1000
+param set-default SIM_GZ_EC_MAX5 1000
+param set-default SIM_GZ_EC_MAX6 1000
+param set-default SIM_GZ_EC_MAX7 1000
+param set-default SIM_GZ_EC_MAX8 1000
+
+# Simulations Servo Output Settins
+
+param set-default SIM_GZ_SV_FUNC1 201
+param set-default SIM_GZ_SV_FUNC2 202
+param set-default SIM_GZ_SV_FUNC3 203
+param set-default SIM_GZ_SV_FUNC4 204
+param set-default SIM_GZ_SV_FUNC5 205
+param set-default SIM_GZ_SV_FUNC6 206
+param set-default SIM_GZ_SV_FUNC7 207
+param set-default SIM_GZ_SV_FUNC8 208
+
+param set-default PWM_MAIN_FUNC1 10003
+param set-default PWM_MAIN_FUNC2 10004
+param set-default PWM_MAIN_FUNC3 10005
+param set-default PWM_MAIN_FUNC4 10006
+

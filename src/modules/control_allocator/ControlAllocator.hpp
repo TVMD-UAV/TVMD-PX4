@@ -53,6 +53,7 @@
 #include <ActuatorEffectivenessCustom.hpp>
 #include <ActuatorEffectivenessUUV.hpp>
 #include <ActuatorEffectivenessHelicopter.hpp>
+#include <ActuatorEffectivenessVTOL_TVMD.hpp>
 
 #include <ControlAllocation.hpp>
 #include <ControlAllocationPseudoInverse.hpp>
@@ -157,6 +158,7 @@ private:
 		CUSTOM = 9,
 		HELICOPTER_TAIL_ESC = 10,
 		HELICOPTER_TAIL_SERVO = 11,
+		VTOL_TVMD = 12,
 	};
 
 	enum class FailureMode {

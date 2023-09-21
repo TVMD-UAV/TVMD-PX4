@@ -1,6 +1,6 @@
 __max_num_mc_motors: &max_num_mc_motors 12
 __max_num_servos: &max_num_servos 8
-__max_num_tilts: &max_num_tilts 4
+__max_num_tilts: &max_num_tilts 8
 
 module_name: Control Allocation
 
@@ -29,6 +29,7 @@ parameters:
                 9: Custom
                 10: Helicopter (tail ESC)
                 11: Helicopter (tail Servo)
+                12: VTOL TVMD
             default: 0
 
         CA_METHOD:
@@ -231,6 +232,10 @@ parameters:
                 2: 'Tilt 2'
                 3: 'Tilt 3'
                 4: 'Tilt 4'
+                5: 'Tilt 5'
+                6: 'Tilt 6'
+                7: 'Tilt 7'
+                8: 'Tilt 8'
             num_instances: *max_num_mc_motors
             instance_start: 0
             default: 0
@@ -351,6 +356,10 @@ parameters:
                 2: '2'
                 3: '3'
                 4: '4'
+                5: '5'
+                6: '6'
+                7: '7'
+                8: '8'
             default: 0
         CA_SV_TL${i}_CT:
             description:
@@ -526,6 +535,66 @@ parameters:
             type: boolean
             default: 0
 
+        # Modular Drone
+        CA_MD_COUNT:
+            description:
+                short: Total number of Modules
+                long: |
+                  Currently, it only supports up to 4 modules due to the limitation of maximum number of actuators.
+                  The number of motors and the number of tilting servos should be 2 x number_of_module.
+            type: enum
+            min: 3
+            max: 4
+            values:
+                3: '3'
+                4: '4'
+            default: 4
+        CA_MD${i}_PX:
+            description:
+                short: Position of module ${i} along X body axis relative to center of gravity
+            type: float
+            decimal: 2
+            increment: 0.1
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -100
+            max: 100
+            default: 0.0
+        CA_MD${i}_PY:
+            description:
+                short: Position of module ${i} along Y body axis relative to center of gravity
+            type: float
+            decimal: 2
+            increment: 0.1
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -100
+            max: 100
+            default: 0.0
+        CA_MD${i}_PZ:
+            description:
+                short: Position of module ${i} along Z body axis relative to center of gravity
+            type: float
+            decimal: 2
+            increment: 0.1
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -100
+            max: 100
+            default: 0.0
+        CA_MD${i}_AZ:
+            description:
+                short: Agent orientation rotated by 90 degree along z-axis
+                long: Only four possible values, 4 * 90 back to 0
+            type: enum
+            num_instances: *max_num_mc_motors
+            values:
+                0: '0'
+                1: '1'
+                2: '2'
+                3: '3'
+            default: 0
+
         # Others
         CA_FAILURE_MODE:
             description:
@@ -569,6 +638,15 @@ mixer:
                 label: 'Slew Rate'
                 index_offset: 0
                 advanced: true
+        module:
+            functions: 'TVMD_Module'
+            actuator_testing_values:
+                min: -1
+                max: 1
+                default: 0
+            per_item_parameters:
+              - name: 'CA_MD${i}_AZ'
+                label: "Agent\nOrientation"
         DEFAULT:
             actuator_testing_values:
                 min: -1
@@ -1117,3 +1195,41 @@ mixer:
                       - label: 'Throttle spoolup time'
                         name: 'COM_SPOOLUP_TIME'
 
+            12: # VTOL TVMD
+                title: 'VTOL TVMD'
+                actuators:
+                  - actuator_type: 'module'
+                    group_label: 'Modules'
+                    count: 'CA_MD_COUNT'
+                    item_label_prefix: 'Module ${i}'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_MD${i}_PX', 'CA_MD${i}_PY', 'CA_MD${i}_PZ' ]
+                  - actuator_type: 'motor'
+                    group_label: 'Coaxial Motors'
+                    count: 'CA_ROTOR_COUNT'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
+                        extra:
+                          - name: 'CA_ROTOR${i}_TILT'
+                            label: 'Tilted by'
+                            identifier: 'rotor-tilted-by-servo'
+                          - name: 'CA_ROTOR${i}_KM'
+                            label: 'Direction CCW'
+                            function: 'spin-dir'
+                            show_as: 'true-if-positive'
+                  - actuator_type: 'servo'
+                    group_label: 'Tilt Servos'
+                    count: 'CA_SV_TL_COUNT'
+                    item_label_prefix: 'Tilt ${i}'
+                    per_item_parameters:
+                        extra:
+                          - name: 'CA_SV_TL${i}_MINA'
+                            label: "Angle at Min\nTilt"
+                          - name: 'CA_SV_TL${i}_MAXA'
+                            label: "Angle at Max\nTilt"
+                          - name: 'CA_SV_TL${i}_TD'
+                            label: 'Tilt Direction'
+                          - name: 'CA_SV_TL${i}_CT'
+                            label: 'Use for Control'
