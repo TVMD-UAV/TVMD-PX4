@@ -1,0 +1,1169 @@
+<sdf version='1.10'>
+  <model name='tvmd'>
+    <link name='base_link'>
+      <inertial>
+        <pose>0.03040090661220634 -0.00045565823357024502 0.034878785013858757 0 0 0</pose>
+        <mass>4.8733267700000003</mass>
+        <inertia>
+          <ixx>0.1176379879281003</ixx>
+          <ixy>0.00037498891390241098</ixy>
+          <ixz>-0.0017622019768770861</ixz>
+          <iyy>0.17959334217062251</iyy>
+          <iyz>-0.00020331837285678369</iyz>
+          <izz>0.28033314291633571</izz>
+        </inertia>
+      </inertial>
+      <collision name='base_link_collision'>
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/navigator/NavigatorModule-Sim.stl</uri>
+          </mesh>
+        </geometry>
+        <surface>
+          <contact>
+            <ode/>
+          </contact>
+          <friction>
+            <ode/>
+          </friction>
+        </surface>
+      </collision>
+      <visual name='base_link_visual'>
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/navigator/NavigatorModule-Sim.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <diffuse>0.125 0.125 0.37500003 1</diffuse>
+          <ambient>0.125 0.125 0.37500003 1</ambient>
+        </material>
+      </visual>
+      <visual name='base_link_fixed_joint_lump__module1_body_link_visual_1'>
+        <pose>-0.215 -0.215 0.068000000000000005 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/base_link.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Black</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>0 0 0 1</diffuse>
+          <ambient>0 0 0 1</ambient>
+        </material>
+      </visual>
+      <visual name='base_link_fixed_joint_lump__module2_body_link_visual_2'>
+        <pose>-0.215 0.215 0.068000000000000005 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/base_link.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Black</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>0 0 0 1</diffuse>
+          <ambient>0 0 0 1</ambient>
+        </material>
+      </visual>
+      <visual name='base_link_fixed_joint_lump__module3_body_link_visual_3'>
+        <pose>0.215 -0.215 0.068000000000000005 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/base_link.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Black</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>0 0 0 1</diffuse>
+          <ambient>0 0 0 1</ambient>
+        </material>
+      </visual>
+      <visual name='base_link_fixed_joint_lump__module4_body_link_visual_4'>
+        <pose>0.215 0.215 0.068000000000000005 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/base_link.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Black</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>0 0 0 1</diffuse>
+          <ambient>0 0 0 1</ambient>
+        </material>
+      </visual>
+      <sensor name='imu_sensor' type='imu'>
+        <always_on>true</always_on>
+        <update_rate>250</update_rate>
+      </sensor>
+      <sensor name='air_pressure_sensor' type='air_pressure'>
+        <always_on>true</always_on>
+        <update_rate>50</update_rate>
+        <air_pressure>
+          <pressure>
+            <noise type='gaussian'>
+              <mean>0</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </pressure>
+        </air_pressure>
+      </sensor>
+      <gravity>true</gravity>
+      <gravity>true</gravity>
+      <gravity>true</gravity>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module1_body_gimbal_joint' type='revolute'>
+      <pose relative_to='base_link'>-0.41647499999999998 -0.215 0.068000000000000005 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>module1_gimbal_link</child>
+      <axis>
+        <xyz>-1 0 0</xyz>
+        <limit>
+          <lower>-1.570796326794897</lower>
+          <upper>1.570796326794897</upper>
+          <effort>30000</effort>
+          <velocity>10</velocity>
+        </limit>
+        <dynamics>
+          <damping>1</damping>
+          <friction>0</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module1_gimbal_link'>
+      <pose relative_to='module1_body_gimbal_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>0.18430655533297191 0.000191860333067949 -0.00087172379203482361 0 0 0</pose>
+        <mass>0.033955279999999997</mass>
+        <inertia>
+          <ixx>1.59e-06</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.00031943999999999999</iyy>
+          <iyz>-2.9999999999999997e-08</iyz>
+          <izz>0.00031946999999999998</izz>
+        </inertia>
+      </inertial>
+      <visual name='module1_gimbal_link_visual'>
+        <pose>0.20147499999999999 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/Gimbal_Frame_1.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Gray</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>0.25 0.25 0.25 1</diffuse>
+          <ambient>0.25 0.25 0.25 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module1_gimbal_actuator_joint' type='revolute'>
+      <pose relative_to='module1_gimbal_link'>0.20197499999999999 0.010999999999999999 0 0 0 0</pose>
+      <parent>module1_gimbal_link</parent>
+      <child>module1_actuator_link</child>
+      <axis>
+        <xyz>0 -1 0</xyz>
+        <limit>
+          <lower>-0.52359877559829882</lower>
+          <upper>0.52359877559829882</upper>
+          <effort>30000</effort>
+          <velocity>10</velocity>
+        </limit>
+        <dynamics>
+          <damping>1</damping>
+          <friction>0</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module1_actuator_link'>
+      <pose relative_to='module1_gimbal_actuator_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>8.6745367860922656e-05 -0.01273750995426476 -0.00360577814381699 0 0 0</pose>
+        <mass>0.12541537999999999</mass>
+        <inertia>
+          <ixx>0.00030455</ixx>
+          <ixy>-9.9999999999999995e-08</ixy>
+          <ixz>-1.8e-07</ixz>
+          <iyy>0.00029933</iyy>
+          <iyz>4.3699999999999997e-06</iyz>
+          <izz>1.5449999999999999e-05</izz>
+        </inertia>
+      </inertial>
+      <visual name='module1_actuator_link_visual'>
+        <pose>-0.00050000000000000001 -0.010999999999999999 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/Actuator_1.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Gray</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>0.25 0.25 0.25 1</diffuse>
+          <ambient>0.25 0.25 0.25 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module1_actuator_prop1_joint' type='revolute'>
+      <pose relative_to='module1_actuator_link'>0 -0.010500000000000001 0.081600000000000006 0 0 0</pose>
+      <parent>module1_actuator_link</parent>
+      <child>module1_prop1_link</child>
+      <axis>
+        <xyz>0 0 -1</xyz>
+        <limit>
+          <effort>30000</effort>
+          <velocity>10000</velocity>
+          <lower>-inf</lower>
+          <upper>inf</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module1_prop1_link'>
+      <pose relative_to='module1_actuator_prop1_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>3.2160652308475292e-08 -3.6756938827939643e-08 -0.0033273455662460871 0 0 0</pose>
+        <mass>0.0025377799999999999</mass>
+        <inertia>
+          <ixx>4.9999999999999998e-08</ixx>
+          <ixy>0</ixy>
+          <ixz>-8.9999999999999999e-08</ixz>
+          <iyy>7.0500000000000003e-06</iyy>
+          <iyz>0</iyz>
+          <izz>7.0199999999999997e-06</izz>
+        </inertia>
+      </inertial>
+      <visual name='module1_prop1_link_visual'>
+        <pose>-0.00050000000000000001 -0.00050000000000000001 -0.081600000000000006 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/propeller_9047_1.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Yellow</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>1 1 0 1</diffuse>
+          <ambient>1 1 0 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module1_actuator_prop2_joint' type='revolute'>
+      <pose relative_to='module1_actuator_link'>0.00050000000000000001 -0.010999999999999999 -0.0746 0 0 0</pose>
+      <parent>module1_actuator_link</parent>
+      <child>module1_prop2_link</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <effort>30000</effort>
+          <velocity>10000</velocity>
+          <lower>-inf</lower>
+          <upper>inf</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module1_prop2_link'>
+      <pose relative_to='module1_actuator_prop2_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>3.2160652308475292e-08 -3.6756938827939643e-08 -0.0033273455662460871 0 0 0</pose>
+        <mass>0.0025377799999999999</mass>
+        <inertia>
+          <ixx>4.9999999999999998e-08</ixx>
+          <ixy>0</ixy>
+          <ixz>-8.9999999999999999e-08</ixz>
+          <iyy>7.0500000000000003e-06</iyy>
+          <iyz>0</iyz>
+          <izz>7.0199999999999997e-06</izz>
+        </inertia>
+      </inertial>
+      <visual name='module1_prop2_link_visual'>
+        <pose>-0.001 0 0.0746 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/propeller_9047_2.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Yellow</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>1 1 0 1</diffuse>
+          <ambient>1 1 0 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module2_body_gimbal_joint' type='revolute'>
+      <pose relative_to='base_link'>-0.41647499999999998 0.215 0.068000000000000005 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>module2_gimbal_link</child>
+      <axis>
+        <xyz>-1 0 0</xyz>
+        <limit>
+          <lower>-1.570796326794897</lower>
+          <upper>1.570796326794897</upper>
+          <effort>30000</effort>
+          <velocity>10</velocity>
+        </limit>
+        <dynamics>
+          <damping>1</damping>
+          <friction>0</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module2_gimbal_link'>
+      <pose relative_to='module2_body_gimbal_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>0.18430655533297191 0.000191860333067949 -0.00087172379203482361 0 0 0</pose>
+        <mass>0.033955279999999997</mass>
+        <inertia>
+          <ixx>1.59e-06</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.00031943999999999999</iyy>
+          <iyz>-2.9999999999999997e-08</iyz>
+          <izz>0.00031946999999999998</izz>
+        </inertia>
+      </inertial>
+      <visual name='module2_gimbal_link_visual'>
+        <pose>0.20147499999999999 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/Gimbal_Frame_1.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Gray</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>0.25 0.25 0.25 1</diffuse>
+          <ambient>0.25 0.25 0.25 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module2_gimbal_actuator_joint' type='revolute'>
+      <pose relative_to='module2_gimbal_link'>0.20197499999999999 0.010999999999999999 0 0 0 0</pose>
+      <parent>module2_gimbal_link</parent>
+      <child>module2_actuator_link</child>
+      <axis>
+        <xyz>0 -1 0</xyz>
+        <limit>
+          <lower>-0.52359877559829882</lower>
+          <upper>0.52359877559829882</upper>
+          <effort>30000</effort>
+          <velocity>10</velocity>
+        </limit>
+        <dynamics>
+          <damping>1</damping>
+          <friction>0</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module2_actuator_link'>
+      <pose relative_to='module2_gimbal_actuator_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>8.6745367860922656e-05 -0.01273750995426476 -0.00360577814381699 0 0 0</pose>
+        <mass>0.12541537999999999</mass>
+        <inertia>
+          <ixx>0.00030455</ixx>
+          <ixy>-9.9999999999999995e-08</ixy>
+          <ixz>-1.8e-07</ixz>
+          <iyy>0.00029933</iyy>
+          <iyz>4.3699999999999997e-06</iyz>
+          <izz>1.5449999999999999e-05</izz>
+        </inertia>
+      </inertial>
+      <visual name='module2_actuator_link_visual'>
+        <pose>-0.00050000000000000001 -0.010999999999999999 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/Actuator_1.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Gray</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>0.25 0.25 0.25 1</diffuse>
+          <ambient>0.25 0.25 0.25 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module2_actuator_prop1_joint' type='revolute'>
+      <pose relative_to='module2_actuator_link'>0 -0.010500000000000001 0.081600000000000006 0 0 0</pose>
+      <parent>module2_actuator_link</parent>
+      <child>module2_prop1_link</child>
+      <axis>
+        <xyz>0 0 -1</xyz>
+        <limit>
+          <effort>30000</effort>
+          <velocity>10000</velocity>
+          <lower>-inf</lower>
+          <upper>inf</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module2_prop1_link'>
+      <pose relative_to='module2_actuator_prop1_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>3.2160652308475292e-08 -3.6756938827939643e-08 -0.0033273455662460871 0 0 0</pose>
+        <mass>0.0025377799999999999</mass>
+        <inertia>
+          <ixx>4.9999999999999998e-08</ixx>
+          <ixy>0</ixy>
+          <ixz>-8.9999999999999999e-08</ixz>
+          <iyy>7.0500000000000003e-06</iyy>
+          <iyz>0</iyz>
+          <izz>7.0199999999999997e-06</izz>
+        </inertia>
+      </inertial>
+      <visual name='module2_prop1_link_visual'>
+        <pose>-0.00050000000000000001 -0.00050000000000000001 -0.081600000000000006 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/propeller_9047_1.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Yellow</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>1 1 0 1</diffuse>
+          <ambient>1 1 0 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module2_actuator_prop2_joint' type='revolute'>
+      <pose relative_to='module2_actuator_link'>0.00050000000000000001 -0.010999999999999999 -0.0746 0 0 0</pose>
+      <parent>module2_actuator_link</parent>
+      <child>module2_prop2_link</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <effort>30000</effort>
+          <velocity>10000</velocity>
+          <lower>-inf</lower>
+          <upper>inf</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module2_prop2_link'>
+      <pose relative_to='module2_actuator_prop2_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>3.2160652308475292e-08 -3.6756938827939643e-08 -0.0033273455662460871 0 0 0</pose>
+        <mass>0.0025377799999999999</mass>
+        <inertia>
+          <ixx>4.9999999999999998e-08</ixx>
+          <ixy>0</ixy>
+          <ixz>-8.9999999999999999e-08</ixz>
+          <iyy>7.0500000000000003e-06</iyy>
+          <iyz>0</iyz>
+          <izz>7.0199999999999997e-06</izz>
+        </inertia>
+      </inertial>
+      <visual name='module2_prop2_link_visual'>
+        <pose>-0.001 0 0.0746 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/propeller_9047_2.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Yellow</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>1 1 0 1</diffuse>
+          <ambient>1 1 0 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module3_body_gimbal_joint' type='revolute'>
+      <pose relative_to='base_link'>0.013525000000000009 -0.215 0.068000000000000005 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>module3_gimbal_link</child>
+      <axis>
+        <xyz>-1 0 0</xyz>
+        <limit>
+          <lower>-1.570796326794897</lower>
+          <upper>1.570796326794897</upper>
+          <effort>30000</effort>
+          <velocity>10</velocity>
+        </limit>
+        <dynamics>
+          <damping>1</damping>
+          <friction>0</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module3_gimbal_link'>
+      <pose relative_to='module3_body_gimbal_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>0.18430655533297191 0.000191860333067949 -0.00087172379203482361 0 0 0</pose>
+        <mass>0.033955279999999997</mass>
+        <inertia>
+          <ixx>1.59e-06</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.00031943999999999999</iyy>
+          <iyz>-2.9999999999999997e-08</iyz>
+          <izz>0.00031946999999999998</izz>
+        </inertia>
+      </inertial>
+      <visual name='module3_gimbal_link_visual'>
+        <pose>0.20147499999999999 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/Gimbal_Frame_1.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Gray</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>0.25 0.25 0.25 1</diffuse>
+          <ambient>0.25 0.25 0.25 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module3_gimbal_actuator_joint' type='revolute'>
+      <pose relative_to='module3_gimbal_link'>0.20197499999999999 0.010999999999999999 0 0 0 0</pose>
+      <parent>module3_gimbal_link</parent>
+      <child>module3_actuator_link</child>
+      <axis>
+        <xyz>0 -1 0</xyz>
+        <limit>
+          <lower>-0.52359877559829882</lower>
+          <upper>0.52359877559829882</upper>
+          <effort>30000</effort>
+          <velocity>10</velocity>
+        </limit>
+        <dynamics>
+          <damping>1</damping>
+          <friction>0</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module3_actuator_link'>
+      <pose relative_to='module3_gimbal_actuator_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>8.6745367860922656e-05 -0.01273750995426476 -0.00360577814381699 0 0 0</pose>
+        <mass>0.12541537999999999</mass>
+        <inertia>
+          <ixx>0.00030455</ixx>
+          <ixy>-9.9999999999999995e-08</ixy>
+          <ixz>-1.8e-07</ixz>
+          <iyy>0.00029933</iyy>
+          <iyz>4.3699999999999997e-06</iyz>
+          <izz>1.5449999999999999e-05</izz>
+        </inertia>
+      </inertial>
+      <visual name='module3_actuator_link_visual'>
+        <pose>-0.00050000000000000001 -0.010999999999999999 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/Actuator_1.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Gray</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>0.25 0.25 0.25 1</diffuse>
+          <ambient>0.25 0.25 0.25 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module3_actuator_prop1_joint' type='revolute'>
+      <pose relative_to='module3_actuator_link'>0 -0.010500000000000001 0.081600000000000006 0 0 0</pose>
+      <parent>module3_actuator_link</parent>
+      <child>module3_prop1_link</child>
+      <axis>
+        <xyz>0 0 -1</xyz>
+        <limit>
+          <effort>30000</effort>
+          <velocity>10000</velocity>
+          <lower>-inf</lower>
+          <upper>inf</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module3_prop1_link'>
+      <pose relative_to='module3_actuator_prop1_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>3.2160652308475292e-08 -3.6756938827939643e-08 -0.0033273455662460871 0 0 0</pose>
+        <mass>0.0025377799999999999</mass>
+        <inertia>
+          <ixx>4.9999999999999998e-08</ixx>
+          <ixy>0</ixy>
+          <ixz>-8.9999999999999999e-08</ixz>
+          <iyy>7.0500000000000003e-06</iyy>
+          <iyz>0</iyz>
+          <izz>7.0199999999999997e-06</izz>
+        </inertia>
+      </inertial>
+      <visual name='module3_prop1_link_visual'>
+        <pose>-0.00050000000000000001 -0.00050000000000000001 -0.081600000000000006 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/propeller_9047_1.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Yellow</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>1 1 0 1</diffuse>
+          <ambient>1 1 0 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module3_actuator_prop2_joint' type='revolute'>
+      <pose relative_to='module3_actuator_link'>0.00050000000000000001 -0.010999999999999999 -0.0746 0 0 0</pose>
+      <parent>module3_actuator_link</parent>
+      <child>module3_prop2_link</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <effort>30000</effort>
+          <velocity>10000</velocity>
+          <lower>-inf</lower>
+          <upper>inf</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module3_prop2_link'>
+      <pose relative_to='module3_actuator_prop2_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>3.2160652308475292e-08 -3.6756938827939643e-08 -0.0033273455662460871 0 0 0</pose>
+        <mass>0.0025377799999999999</mass>
+        <inertia>
+          <ixx>4.9999999999999998e-08</ixx>
+          <ixy>0</ixy>
+          <ixz>-8.9999999999999999e-08</ixz>
+          <iyy>7.0500000000000003e-06</iyy>
+          <iyz>0</iyz>
+          <izz>7.0199999999999997e-06</izz>
+        </inertia>
+      </inertial>
+      <visual name='module3_prop2_link_visual'>
+        <pose>-0.001 0 0.0746 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/propeller_9047_2.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Yellow</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>1 1 0 1</diffuse>
+          <ambient>1 1 0 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module4_body_gimbal_joint' type='revolute'>
+      <pose relative_to='base_link'>0.013525000000000009 0.215 0.068000000000000005 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>module4_gimbal_link</child>
+      <axis>
+        <xyz>-1 0 0</xyz>
+        <limit>
+          <lower>-1.570796326794897</lower>
+          <upper>1.570796326794897</upper>
+          <effort>30000</effort>
+          <velocity>10</velocity>
+        </limit>
+        <dynamics>
+          <damping>1</damping>
+          <friction>0</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module4_gimbal_link'>
+      <pose relative_to='module4_body_gimbal_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>0.18430655533297191 0.000191860333067949 -0.00087172379203482361 0 0 0</pose>
+        <mass>0.033955279999999997</mass>
+        <inertia>
+          <ixx>1.59e-06</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.00031943999999999999</iyy>
+          <iyz>-2.9999999999999997e-08</iyz>
+          <izz>0.00031946999999999998</izz>
+        </inertia>
+      </inertial>
+      <visual name='module4_gimbal_link_visual'>
+        <pose>0.20147499999999999 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/Gimbal_Frame_1.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Gray</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>0.25 0.25 0.25 1</diffuse>
+          <ambient>0.25 0.25 0.25 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module4_gimbal_actuator_joint' type='revolute'>
+      <pose relative_to='module4_gimbal_link'>0.20197499999999999 0.010999999999999999 0 0 0 0</pose>
+      <parent>module4_gimbal_link</parent>
+      <child>module4_actuator_link</child>
+      <axis>
+        <xyz>0 -1 0</xyz>
+        <limit>
+          <lower>-0.52359877559829882</lower>
+          <upper>0.52359877559829882</upper>
+          <effort>30000</effort>
+          <velocity>10</velocity>
+        </limit>
+        <dynamics>
+          <damping>1</damping>
+          <friction>0</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module4_actuator_link'>
+      <pose relative_to='module4_gimbal_actuator_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>8.6745367860922656e-05 -0.01273750995426476 -0.00360577814381699 0 0 0</pose>
+        <mass>0.12541537999999999</mass>
+        <inertia>
+          <ixx>0.00030455</ixx>
+          <ixy>-9.9999999999999995e-08</ixy>
+          <ixz>-1.8e-07</ixz>
+          <iyy>0.00029933</iyy>
+          <iyz>4.3699999999999997e-06</iyz>
+          <izz>1.5449999999999999e-05</izz>
+        </inertia>
+      </inertial>
+      <visual name='module4_actuator_link_visual'>
+        <pose>-0.00050000000000000001 -0.010999999999999999 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/Actuator_1.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Gray</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>0.25 0.25 0.25 1</diffuse>
+          <ambient>0.25 0.25 0.25 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module4_actuator_prop1_joint' type='revolute'>
+      <pose relative_to='module4_actuator_link'>0 -0.010500000000000001 0.081600000000000006 0 0 0</pose>
+      <parent>module4_actuator_link</parent>
+      <child>module4_prop1_link</child>
+      <axis>
+        <xyz>0 0 -1</xyz>
+        <limit>
+          <effort>30000</effort>
+          <velocity>10000</velocity>
+          <lower>-inf</lower>
+          <upper>inf</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module4_prop1_link'>
+      <pose relative_to='module4_actuator_prop1_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>3.2160652308475292e-08 -3.6756938827939643e-08 -0.0033273455662460871 0 0 0</pose>
+        <mass>0.0025377799999999999</mass>
+        <inertia>
+          <ixx>4.9999999999999998e-08</ixx>
+          <ixy>0</ixy>
+          <ixz>-8.9999999999999999e-08</ixz>
+          <iyy>7.0500000000000003e-06</iyy>
+          <iyz>0</iyz>
+          <izz>7.0199999999999997e-06</izz>
+        </inertia>
+      </inertial>
+      <visual name='module4_prop1_link_visual'>
+        <pose>-0.00050000000000000001 -0.00050000000000000001 -0.081600000000000006 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/propeller_9047_1.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Yellow</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>1 1 0 1</diffuse>
+          <ambient>1 1 0 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <joint name='module4_actuator_prop2_joint' type='revolute'>
+      <pose relative_to='module4_actuator_link'>0.00050000000000000001 -0.010999999999999999 -0.0746 0 0 0</pose>
+      <parent>module4_actuator_link</parent>
+      <child>module4_prop2_link</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <effort>30000</effort>
+          <velocity>10000</velocity>
+          <lower>-inf</lower>
+          <upper>inf</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    <link name='module4_prop2_link'>
+      <pose relative_to='module4_actuator_prop2_joint'>0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>3.2160652308475292e-08 -3.6756938827939643e-08 -0.0033273455662460871 0 0 0</pose>
+        <mass>0.0025377799999999999</mass>
+        <inertia>
+          <ixx>4.9999999999999998e-08</ixx>
+          <ixy>0</ixy>
+          <ixz>-8.9999999999999999e-08</ixz>
+          <iyy>7.0500000000000003e-06</iyy>
+          <iyz>0</iyz>
+          <izz>7.0199999999999997e-06</izz>
+        </inertia>
+      </inertial>
+      <visual name='module4_prop2_link_visual'>
+        <pose>-0.001 0 0.0746 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://tvmd/meshes/agent/propeller_9047_2.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Yellow</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <diffuse>1 1 0 1</diffuse>
+          <ambient>1 1 0 1</ambient>
+        </material>
+      </visual>
+      <self_collide>false</self_collide>
+      <gravity>true</gravity>
+    </link>
+    <plugin name='gz::sim::systems::JointPositionController' filename='gz-sim-joint-position-controller-system'>
+      <joint_name>module1_body_gimbal_joint</joint_name>
+      <sub_topic>servo_0</sub_topic>
+    </plugin>
+    <plugin name='gz::sim::systems::JointPositionController' filename='gz-sim-joint-position-controller-system'>
+      <joint_name>module1_gimbal_actuator_joint</joint_name>
+      <sub_topic>servo_1</sub_topic>
+    </plugin>
+    <plugin name='gz::sim::systems::MulticopterMotorModel' filename='gz-sim-multicopter-motor-model-system'>
+      <jointName>module1_actuator_prop1_joint</jointName>
+      <linkName>module1_prop1_link</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>2e-05</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>0</motorNumber>
+      <rotorDragCoefficient>0.000106428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin name='gz::sim::systems::MulticopterMotorModel' filename='gz-sim-multicopter-motor-model-system'>
+      <jointName>module1_actuator_prop2_joint</jointName>
+      <linkName>module1_prop2_link</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>2e-05</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>1</motorNumber>
+      <rotorDragCoefficient>0.000106428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin name='gz::sim::systems::JointPositionController' filename='gz-sim-joint-position-controller-system'>
+      <joint_name>module2_body_gimbal_joint</joint_name>
+      <sub_topic>servo_2</sub_topic>
+    </plugin>
+    <plugin name='gz::sim::systems::JointPositionController' filename='gz-sim-joint-position-controller-system'>
+      <joint_name>module2_gimbal_actuator_joint</joint_name>
+      <sub_topic>servo_3</sub_topic>
+    </plugin>
+    <plugin name='gz::sim::systems::MulticopterMotorModel' filename='gz-sim-multicopter-motor-model-system'>
+      <jointName>module2_actuator_prop1_joint</jointName>
+      <linkName>module2_prop1_link</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>2e-05</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>2</motorNumber>
+      <rotorDragCoefficient>0.000106428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin name='gz::sim::systems::MulticopterMotorModel' filename='gz-sim-multicopter-motor-model-system'>
+      <jointName>module2_actuator_prop2_joint</jointName>
+      <linkName>module2_prop2_link</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>2e-05</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>3</motorNumber>
+      <rotorDragCoefficient>0.000106428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin name='gz::sim::systems::JointPositionController' filename='gz-sim-joint-position-controller-system'>
+      <joint_name>module3_body_gimbal_joint</joint_name>
+      <sub_topic>servo_4</sub_topic>
+    </plugin>
+    <plugin name='gz::sim::systems::JointPositionController' filename='gz-sim-joint-position-controller-system'>
+      <joint_name>module3_gimbal_actuator_joint</joint_name>
+      <sub_topic>servo_5</sub_topic>
+    </plugin>
+    <plugin name='gz::sim::systems::MulticopterMotorModel' filename='gz-sim-multicopter-motor-model-system'>
+      <jointName>module3_actuator_prop1_joint</jointName>
+      <linkName>module3_prop1_link</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>2e-05</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>4</motorNumber>
+      <rotorDragCoefficient>0.000106428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin name='gz::sim::systems::MulticopterMotorModel' filename='gz-sim-multicopter-motor-model-system'>
+      <jointName>module3_actuator_prop2_joint</jointName>
+      <linkName>module3_prop2_link</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>2e-05</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>5</motorNumber>
+      <rotorDragCoefficient>0.000106428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin name='gz::sim::systems::JointPositionController' filename='gz-sim-joint-position-controller-system'>
+      <joint_name>module4_body_gimbal_joint</joint_name>
+      <sub_topic>servo_6</sub_topic>
+    </plugin>
+    <plugin name='gz::sim::systems::JointPositionController' filename='gz-sim-joint-position-controller-system'>
+      <joint_name>module4_gimbal_actuator_joint</joint_name>
+      <sub_topic>servo_7</sub_topic>
+    </plugin>
+    <plugin name='gz::sim::systems::MulticopterMotorModel' filename='gz-sim-multicopter-motor-model-system'>
+      <jointName>module4_actuator_prop1_joint</jointName>
+      <linkName>module4_prop1_link</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>2e-05</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>6</motorNumber>
+      <rotorDragCoefficient>0.000106428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin name='gz::sim::systems::MulticopterMotorModel' filename='gz-sim-multicopter-motor-model-system'>
+      <jointName>module4_actuator_prop2_joint</jointName>
+      <linkName>module4_prop2_link</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>2e-05</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>7</motorNumber>
+      <rotorDragCoefficient>0.000106428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <frame name='rigid_base_link_module1_body_link' attached_to='base_link'>
+      <pose>-0.215 -0.215 0.068000000000000005 0 0 0</pose>
+    </frame>
+    <frame name='module1_body_link' attached_to='rigid_base_link_module1_body_link'>
+      <pose>0 0 0 0 0 0</pose>
+    </frame>
+    <frame name='rigid_base_link_module2_body_link' attached_to='base_link'>
+      <pose>-0.215 0.215 0.068000000000000005 0 0 0</pose>
+    </frame>
+    <frame name='module2_body_link' attached_to='rigid_base_link_module2_body_link'>
+      <pose>0 0 0 0 0 0</pose>
+    </frame>
+    <frame name='rigid_base_link_module3_body_link' attached_to='base_link'>
+      <pose>0.215 -0.215 0.068000000000000005 0 0 0</pose>
+    </frame>
+    <frame name='module3_body_link' attached_to='rigid_base_link_module3_body_link'>
+      <pose>0 0 0 0 0 0</pose>
+    </frame>
+    <frame name='rigid_base_link_module4_body_link' attached_to='base_link'>
+      <pose>0.215 0.215 0.068000000000000005 0 0 0</pose>
+    </frame>
+    <frame name='module4_body_link' attached_to='rigid_base_link_module4_body_link'>
+      <pose>0 0 0 0 0 0</pose>
+    </frame>
+  </model>
+</sdf>
