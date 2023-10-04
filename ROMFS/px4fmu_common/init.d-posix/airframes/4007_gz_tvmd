@@ -36,68 +36,84 @@ param set-default CA_MD1_PX -1.0
 param set-default CA_MD1_PY 1.0
 param set-default CA_MD1_PZ 0
 param set-default CA_MD1_AZ 0
+param set-default CA_MD1_X_GEARRATIO 1.0
+param set-default CA_MD1_Y_GEARRATIO 1.0
 
 param set-default CA_MD2_PX 1.0
 param set-default CA_MD2_PY 1.0
 param set-default CA_MD2_PZ 0
 param set-default CA_MD2_AZ 0
+param set-default CA_MD2_X_GEARRATIO 1.0
+param set-default CA_MD2_Y_GEARRATIO 1.0
 
 param set-default CA_MD3_PX -1.0
 param set-default CA_MD3_PY -1.0
 param set-default CA_MD3_PZ 0
 param set-default CA_MD3_AZ 0
+param set-default CA_MD3_X_GEARRATIO 1.0
+param set-default CA_MD3_Y_GEARRATIO 1.0
 
 param set-default CA_MD4_PX 1.0
 param set-default CA_MD4_PY -1.0
 param set-default CA_MD4_PZ 0
 param set-default CA_MD4_AZ 0
+param set-default CA_MD4_X_GEARRATIO 1.0
+param set-default CA_MD4_Y_GEARRATIO 1.0
 
 # Rotor settins
 param set-default CA_ROTOR_COUNT 8
 
-param set-default CA_ROTOR0_KM -0.05
+param set-default CA_ROTOR0_CT 0.020231
+param set-default CA_ROTOR0_KM -0.0188
 param set-default CA_ROTOR0_PX 0
 param set-default CA_ROTOR0_PY 0
 param set-default CA_ROTOR0_PZ 0.2
 param set-default CA_ROTOR0_TILT 1
 
-param set-default CA_ROTOR1_KM 0.05
+param set-default CA_ROTOR1_CT 0.020231
+param set-default CA_ROTOR1_KM 0.0188
 param set-default CA_ROTOR1_PX 0
 param set-default CA_ROTOR1_PY 0
 param set-default CA_ROTOR1_PZ -0.2
 param set-default CA_ROTOR1_TILT 2
 
-param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR2_CT 0.020231
+param set-default CA_ROTOR2_KM -0.0188
 param set-default CA_ROTOR2_PX 0
 param set-default CA_ROTOR2_PY 0
 param set-default CA_ROTOR2_PZ 0.2
 param set-default CA_ROTOR2_TILT 3
 
-param set-default CA_ROTOR3_KM 0.05
+param set-default CA_ROTOR3_CT 0.020231
+param set-default CA_ROTOR3_KM 0.0188
 param set-default CA_ROTOR3_PX 0
 param set-default CA_ROTOR3_PY 0
 param set-default CA_ROTOR3_PZ -0.2
 param set-default CA_ROTOR3_TILT 4
 
-param set-default CA_ROTOR4_KM -0.05
+param set-default CA_ROTOR4_CT 0.020231
+param set-default CA_ROTOR4_KM -0.0188
 param set-default CA_ROTOR4_PX 0
 param set-default CA_ROTOR4_PY 0
 param set-default CA_ROTOR4_PZ 0.2
 param set-default CA_ROTOR4_TILT 5
 
-param set-default CA_ROTOR5_KM 0.05
+param set-default CA_ROTOR5_CT 0.020231
+param set-default CA_ROTOR5_KM 0.0188
 param set-default CA_ROTOR5_PX 0
 param set-default CA_ROTOR5_PY 0
 param set-default CA_ROTOR5_PZ -0.2
 param set-default CA_ROTOR5_TILT 6
 
-param set-default CA_ROTOR6_KM -0.05
+param set-default CA_ROTOR6_CT 0.020231
+param set-default CA_ROTOR6_KM -0.0188
 param set-default CA_ROTOR6_PX 0
 param set-default CA_ROTOR6_PY 0
 param set-default CA_ROTOR6_PZ 0.2
 param set-default CA_ROTOR6_TILT 7
 
-param set-default CA_ROTOR7_KM 0.05
+param set-default CA_ROTOR7_CT 0.020231
+param set-default CA_ROTOR7_KM 0.0188
 param set-default CA_ROTOR7_PX 0
 param set-default CA_ROTOR7_PY 0
 param set-default CA_ROTOR7_PZ -0.2
