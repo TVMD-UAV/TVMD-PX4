@@ -55,19 +55,19 @@
 class ActuatorEffectivenessVTOL_TVMD : public ModuleParams, public ActuatorEffectiveness
 {
 public:
-	static constexpr int NUM_AGENTS_MAX = 6;
+	static constexpr int NUM_AGENTS_MAX = 4;
 
 	// region [Geometry Struct Definitions]
 	struct ModuleGeometry {
-		float pos_x;
-		float pos_y;
-		float pos_z;
-		int32_t ax_psi;
+		matrix::Vector3f position;
+		matrix::Vector3f motor_conf[2];
+		matrix::Vector3f servo_conf[2];
+		uint8_t ax_psi;
+		float gear_ratio[2];
 	};
 
 	struct Geometry {
-		int num_agents;
-		int rotor_count;
+		uint8_t num_agents;
 		ModuleGeometry module_geometry[NUM_AGENTS_MAX];
 	};
 	// endregion [Geometry Struct Definitions]
@@ -87,6 +87,8 @@ public:
 
 protected:
 
+	void tf_mapping(const uint8_t module_id, const matrix::Vector2f tftd, matrix::Vector2f u_prop) const;
+
 private:
 
 	void updateParams() override;
@@ -97,11 +99,19 @@ private:
 		param_t pos_y;
 		param_t pos_z;
 		param_t ax_psi;
+
+		param_t c_l[2];
+		param_t c_d[2];
+		param_t motor_slew[2];   // propeller rate limit
+
+		param_t servo_min[2];  // eta_x servo angle min
+		param_t servo_max[2];  // eta_x servo angle max
+		param_t servo_slew[2]; // eta_x rate limit
+		param_t gear_ratio[2];
 	};
 
 	struct ParamHandles {
 		param_t num_agents;
-		param_t rotor_count;
 		ParamModuleGeometry module_geometry[NUM_AGENTS_MAX];
 	};
 	// endregion [Geometry Parameter Handles Struct Definitions]
@@ -110,6 +120,10 @@ private:
 
 	Geometry _geometry{};
 
+	ActuatorVector _actuator_scale;
+
+	void genRotationMatrixRz(matrix::Matrix3f &Rz, const float psi);
+
 	float _param_spoolup_time{1.f};
 
 	// Tilt handling during motor spoolup: leave the tilts in their disarmed position unitil 1s after arming
@@ -117,4 +131,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	bool _armed{false};
 	uint64_t _armed_time{0};
+
+	inline uint8_t get_motor_idx(uint8_t module_id, uint8_t offset) { return 2 * module_id + offset; };
+	inline uint8_t get_servo_idx(uint8_t module_id, uint8_t offset) { return 2 * module_id + offset + 4 * _geometry.num_agents; };
 };

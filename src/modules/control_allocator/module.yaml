@@ -1,6 +1,7 @@
 __max_num_mc_motors: &max_num_mc_motors 12
 __max_num_servos: &max_num_servos 8
 __max_num_tilts: &max_num_tilts 8
+__max_num_modules: &max_num_modules 4
 
 module_name: Control Allocation
 
@@ -556,7 +557,7 @@ parameters:
             decimal: 2
             increment: 0.1
             unit: m
-            num_instances: *max_num_mc_motors
+            num_instances: *max_num_modules
             min: -100
             max: 100
             default: 0.0
@@ -567,7 +568,7 @@ parameters:
             decimal: 2
             increment: 0.1
             unit: m
-            num_instances: *max_num_mc_motors
+            num_instances: *max_num_modules
             min: -100
             max: 100
             default: 0.0
@@ -578,7 +579,7 @@ parameters:
             decimal: 2
             increment: 0.1
             unit: m
-            num_instances: *max_num_mc_motors
+            num_instances: *max_num_modules
             min: -100
             max: 100
             default: 0.0
@@ -587,13 +588,36 @@ parameters:
                 short: Agent orientation rotated by 90 degree along z-axis
                 long: Only four possible values, 4 * 90 back to 0
             type: enum
-            num_instances: *max_num_mc_motors
+            num_instances: *max_num_modules
             values:
                 0: '0'
                 1: '1'
                 2: '2'
                 3: '3'
             default: 0
+        CA_MD${i}_X_GR:
+            description:
+                short: x-servo gear ration
+                long: The gear ration of ${i}-th module's x-axis servo gear ration
+            type: float
+            decimal: 2
+            increment: 0.1
+            num_instances: *max_num_modules
+            min: -100
+            max: 100
+            default: 1.0
+        CA_MD${i}_Y_GR:
+            description:
+                short: y-servo gear ration
+                long: The gear ration of ${i}-th module's y-axis servo gear ration
+            type: float
+            decimal: 2
+            increment: 0.1
+            num_instances: *max_num_modules
+            min: -100
+            max: 100
+            default: 1.0
+
 
         # Others
         CA_FAILURE_MODE:
@@ -1205,6 +1229,11 @@ mixer:
                     per_item_parameters:
                         standard:
                             position: [ 'CA_MD${i}_PX', 'CA_MD${i}_PY', 'CA_MD${i}_PZ' ]
+                        extra:
+                          - name: 'CA_MD${i}_X_GR'
+                            label: 'X-Gear Ratio'
+                          - name: 'CA_MD${i}_Y_GR'
+                            label: 'Y-Gear Ratio'
                   - actuator_type: 'motor'
                     group_label: 'Coaxial Motors'
                     count: 'CA_ROTOR_COUNT'
@@ -1215,10 +1244,10 @@ mixer:
                           - name: 'CA_ROTOR${i}_TILT'
                             label: 'Tilted by'
                             identifier: 'rotor-tilted-by-servo'
+                          - name: 'CA_ROTOR${i}_CT'
+                            label: "Thrust\nCoefficient"
                           - name: 'CA_ROTOR${i}_KM'
-                            label: 'Direction CCW'
-                            function: 'spin-dir'
-                            show_as: 'true-if-positive'
+                            label: "Moment\nCoefficient"
                   - actuator_type: 'servo'
                     group_label: 'Tilt Servos'
                     count: 'CA_SV_TL_COUNT'
