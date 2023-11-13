@@ -1,0 +1,5 @@
+ menuconfig EXAMPLES_TVMD_APP
+    bool "TVMD app"
+    default n
+    ---help---
+        Enable TVMD app
