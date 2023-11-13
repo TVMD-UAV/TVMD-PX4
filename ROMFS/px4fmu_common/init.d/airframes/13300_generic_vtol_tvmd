@@ -1,0 +1,177 @@
+#!/bin/sh
+#
+# @name Generic VTOL TVMD
+#
+# @type VTOL TVMD
+# @class VTOL
+#
+# @maintainer Sciyen <sciyen.ycc@gmail.com>
+#
+# @output Motor1 motor 1
+# @output Motor2 motor 2
+# @output Motor3 motor 3
+# @output Motor4 motor 4
+#
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.vtol_defaults
+
+param set-default MAV_TYPE 21
+
+param set-default EKF2_FUSE_BETA 0 # side slip fusion is currently not supported for tailsitters
+
+param set-default CA_AIRFRAME 12
+param set-default CA_METHOD 2
+
+# Module settings
+param set-default CA_MD_COUNT 4
+
+param set-default CA_MD0_PX 0.215
+param set-default CA_MD0_PY 0.215
+param set-default CA_MD0_PZ 0
+param set-default CA_MD0_AZ 1
+param set-default CA_MD0_X_GR 1.0
+param set-default CA_MD0_Y_GR 1.0
+
+param set-default CA_MD1_PX 0.215
+param set-default CA_MD1_PY -0.215
+param set-default CA_MD1_PZ 0
+param set-default CA_MD1_AZ 1
+param set-default CA_MD1_X_GR 1.0
+param set-default CA_MD1_Y_GR 1.0
+
+param set-default CA_MD2_PX -0.215
+param set-default CA_MD2_PY 0.215
+param set-default CA_MD2_PZ 0
+param set-default CA_MD2_AZ 0
+param set-default CA_MD2_X_GR 1.0
+param set-default CA_MD2_Y_GR 1.0
+
+param set-default CA_MD3_PX -0.215
+param set-default CA_MD3_PY -0.215
+param set-default CA_MD3_PZ 0
+param set-default CA_MD3_AZ 0
+param set-default CA_MD3_X_GR 1.0
+param set-default CA_MD3_Y_GR 1.0
+
+# Rotor settins
+param set-default CA_ROTOR_COUNT 8
+
+param set-default CA_ROTOR0_CT 0.020231
+param set-default CA_ROTOR0_KM -0.0188
+param set-default CA_ROTOR0_PX 0
+param set-default CA_ROTOR0_PY 0
+param set-default CA_ROTOR0_PZ 0.2
+param set-default CA_ROTOR0_TILT 1
+
+param set-default CA_ROTOR1_CT 0.020231
+param set-default CA_ROTOR1_KM 0.0188
+param set-default CA_ROTOR1_PX 0
+param set-default CA_ROTOR1_PY 0
+param set-default CA_ROTOR1_PZ -0.2
+param set-default CA_ROTOR1_TILT 2
+
+param set-default CA_ROTOR2_CT 0.020231
+param set-default CA_ROTOR2_KM -0.0188
+param set-default CA_ROTOR2_PX 0
+param set-default CA_ROTOR2_PY 0
+param set-default CA_ROTOR2_PZ 0.2
+param set-default CA_ROTOR2_TILT 3
+
+param set-default CA_ROTOR3_CT 0.020231
+param set-default CA_ROTOR3_KM 0.0188
+param set-default CA_ROTOR3_PX 0
+param set-default CA_ROTOR3_PY 0
+param set-default CA_ROTOR3_PZ -0.2
+param set-default CA_ROTOR3_TILT 4
+
+param set-default CA_ROTOR4_CT 0.020231
+param set-default CA_ROTOR4_KM -0.0188
+param set-default CA_ROTOR4_PX 0
+param set-default CA_ROTOR4_PY 0
+param set-default CA_ROTOR4_PZ 0.2
+param set-default CA_ROTOR4_TILT 5
+
+param set-default CA_ROTOR5_CT 0.020231
+param set-default CA_ROTOR5_KM 0.0188
+param set-default CA_ROTOR5_PX 0
+param set-default CA_ROTOR5_PY 0
+param set-default CA_ROTOR5_PZ -0.2
+param set-default CA_ROTOR5_TILT 6
+
+param set-default CA_ROTOR6_CT 0.020231
+param set-default CA_ROTOR6_KM -0.0188
+param set-default CA_ROTOR6_PX 0
+param set-default CA_ROTOR6_PY 0
+param set-default CA_ROTOR6_PZ 0.2
+param set-default CA_ROTOR6_TILT 7
+
+param set-default CA_ROTOR7_CT 0.020231
+param set-default CA_ROTOR7_KM 0.0188
+param set-default CA_ROTOR7_PX 0
+param set-default CA_ROTOR7_PY 0
+param set-default CA_ROTOR7_PZ -0.2
+param set-default CA_ROTOR7_TILT 8
+
+# Tilting servos
+param set-default CA_SV_TL_COUNT 8
+
+param set-default CA_SV_TL0_MINA -30
+param set-default CA_SV_TL0_MAXA 30
+param set-default CA_SV_TL0_TD 0
+param set-default CA_SV_TL0_CT 1
+
+param set-default CA_SV_TL1_MINA -90
+param set-default CA_SV_TL1_MAXA 90
+param set-default CA_SV_TL1_TD 90
+param set-default CA_SV_TL1_CT 1
+
+param set-default CA_SV_TL2_MINA -30
+param set-default CA_SV_TL2_MAXA 30
+param set-default CA_SV_TL2_TD 0
+param set-default CA_SV_TL2_CT 1
+
+param set-default CA_SV_TL3_MINA -90
+param set-default CA_SV_TL3_MAXA 90
+param set-default CA_SV_TL3_TD 90
+param set-default CA_SV_TL3_CT 1
+
+param set-default CA_SV_TL4_MINA -30
+param set-default CA_SV_TL4_MAXA 30
+param set-default CA_SV_TL4_TD 0
+param set-default CA_SV_TL4_CT 1
+
+param set-default CA_SV_TL5_MINA -90
+param set-default CA_SV_TL5_MAXA 90
+param set-default CA_SV_TL5_TD 90
+param set-default CA_SV_TL5_CT 1
+
+param set-default CA_SV_TL6_MINA -30
+param set-default CA_SV_TL6_MAXA 30
+param set-default CA_SV_TL6_TD 0
+param set-default CA_SV_TL6_CT 1
+
+param set-default CA_SV_TL7_MINA -90
+param set-default CA_SV_TL7_MAXA 90
+param set-default CA_SV_TL7_TD 90
+param set-default CA_SV_TL7_CT 1
+
+# Others
+
+# param set-default VT_TYPE 0
+# param set-default VT_ELEV_MC_LOCK 0
+# param set-default VT_B_TRANS_DUR 5
+
+
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+param set-default PWM_MAIN_FUNC5 105
+param set-default PWM_MAIN_FUNC6 106
+param set-default PWM_MAIN_FUNC7 107
+param set-default PWM_MAIN_FUNC8 108
+param set-default PWM_MAIN_AUX1 201
+param set-default PWM_MAIN_AUX2 202
+param set-default PWM_MAIN_AUX3 203
