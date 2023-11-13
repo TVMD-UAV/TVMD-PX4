@@ -187,6 +187,10 @@ ControlAllocator::update_allocation_method(bool force)
 				_control_allocation[i] = new ControlAllocationSequentialDesaturation();
 				break;
 
+			case AllocationMethod::CASCADED_PSEUDO_INVERSE:
+				_control_allocation[i] = new ControlAllocationCGI();
+				break;
+
 			default:
 				PX4_ERR("Unknown allocation method");
 				break;

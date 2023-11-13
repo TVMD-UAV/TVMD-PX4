@@ -41,28 +41,32 @@
  */
 
 #pragma once
+#include <stdio.h>
 
 #include "ControlAllocation.hpp"
+
+#define CA_CGI_DEBUGGER
 
 class ControlAllocationCGI: public ControlAllocation
 {
 public:
 	static constexpr uint8_t NUM_MODULES = 4;
+	static constexpr uint8_t NUM_F = 12;
+
+	// TODO: These parameters should be loaded using param_get()
 	static constexpr float d = 0.0254 * 9; // meter
 	static constexpr float rho = 1.225;    // kg/m3
 	static constexpr float c_l = 0.020231; // propeller thrust coefficient
 
-	static constexpr float sigma_x = M_PI / 2.0f;
-	static constexpr float sigma_y = M_PI / 6.0f;
-	static constexpr float r_sigma_x = M_PI / 10.0f;
-	static constexpr float r_sigma_y = M_PI / 10.0f;
-	static constexpr float f_max = M_PI / 10.0f;
+	static constexpr float sigma_eta[2] = {M_PI_F / 6.0f, M_PI_F / 2.0f};
+	static constexpr float r_sigma_eta[2] = {M_PI_F / 10.0f, M_PI_F / 10.0f};
+	static constexpr float f_max = 9.818f * 1.5f;
+	// static constexpr float f_min = 0.1f;
+	static constexpr float f_min = 0.0f;
 
 	typedef uint8_t ActiveAgent;
 	typedef matrix::Vector<float, NUM_AXES> ControlVector;
-	typedef matrix::Vector<float, NUM_MODULES * 4> PseudoForceVector;
-
-	// static constexpr uint8_t NUM_MODULES = ActuatorEffectiveness::NUM_MODULES;
+	typedef matrix::Vector<float, NUM_F> PseudoForceVector;
 
 	ControlAllocationCGI() = default;
 	virtual ~ControlAllocationCGI() = default;
@@ -71,6 +75,11 @@ public:
 	void setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness,
 				    const ActuatorVector &actuator_trim, const ActuatorVector &linearization_point, int num_actuators,
 				    bool update_normalization_scale) override;
+
+
+	matrix::Vector<float, NUM_AXES> getAllocatedControl() const override {return _eff * _f; };
+
+	static void forward_transform(const matrix::Vector3f &raw, matrix::Vector3f &f_i);
 
 protected:
 	const uint8_t _actuator_idx_offset{NUM_MODULES * 2};
@@ -82,6 +91,7 @@ protected:
 	matrix::SquareMatrix<float, NUM_AXES> _mwmt;
 	matrix::SquareMatrix<float, NUM_AXES> _mwmt0;
 
+	matrix::Matrix<float, NUM_AXES, NUM_F> _eff;
 	matrix::SquareMatrix<float, NUM_AXES> _L;
 	matrix::SquareMatrix<float, NUM_AXES> _L0;
 
@@ -92,18 +102,17 @@ protected:
 	// Saturated pseudo forces
 	PseudoForceVector _f_c;
 
-	// Local Admissible Constraints, only servos are considered
-	matrix::Matrix<float, NUM_MODULES, 2> _upper;
-	matrix::Matrix<float, NUM_MODULES, 2> _lower;
+	// Local Admissible Constraints, including x-servo, y-servo angle limit, and maximum thrust.
+	matrix::Matrix<float, NUM_MODULES, 3> _upper;
+	matrix::Matrix<float, NUM_MODULES, 3> _lower;
 
 	bool _mix_update_needed{false};
-	bool _rate_constraints_considered{true};
+	bool _rate_constraints_considered{false};
 
 	/**
 	 * Recalculate pseudo inverse if required.
 	 * 1. active_agent set changed
 	 */
-	virtual matrix::Vector<float, NUM_AXES> getAllocatedControl() const override;
 
 	inline int calc_num_active_agents() {return __builtin_popcount(active_agents); };
 
@@ -119,14 +128,14 @@ protected:
 	 */
 	void calc_local_admissible();
 
-	bool calc_saturated_agent_id(ActiveAgent &agent_idx);
+	bool calc_saturated_agent_id(ActiveAgent &agent_idx, matrix::Vector3f &f_ci);
 
-	void inverse_transform(matrix::Vector3f &raw, const matrix::Vector3f &f_i);
+	void inverse_transform(matrix::Vector3f &raw, const matrix::Vector3f &f_i) const;
 
-	// inverse transform: Tf -> w_p1, w_p2
-	void tf_inverse_transform(const float &tf, float &w_p1, float &w_p2);
-
-	void forward_transform(const matrix::Vector3f &raw, matrix::Vector3f &f_i);
+#ifdef CA_CGI_DEBUGGER
+	template<size_t M, size_t N>
+	void print_vector(const matrix::Matrix<float, M, N> &m) const;
+#endif // CA_CGI_DEBUGGER
 
 private:
 	// void normalizeControlAllocationMatrix();
