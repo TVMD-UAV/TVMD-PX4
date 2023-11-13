@@ -59,6 +59,7 @@
 #include <ControlAllocation.hpp>
 #include <ControlAllocationPseudoInverse.hpp>
 #include <ControlAllocationSequentialDesaturation.hpp>
+#include <ControlAllocationCGI.hpp>
 
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>

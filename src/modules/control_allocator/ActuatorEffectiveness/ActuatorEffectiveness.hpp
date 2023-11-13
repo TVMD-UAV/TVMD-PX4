@@ -50,6 +50,7 @@ enum class AllocationMethod {
 	NONE = -1,
 	PSEUDO_INVERSE = 0,
 	SEQUENTIAL_DESATURATION = 1,
+	CASCADED_PSEUDO_INVERSE = 2,
 	AUTO = 2,
 };
 

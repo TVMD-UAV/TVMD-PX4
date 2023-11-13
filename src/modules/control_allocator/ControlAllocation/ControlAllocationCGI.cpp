@@ -42,11 +42,25 @@
 
 #include "ControlAllocationCGI.hpp"
 
+// https://stackoverflow.com/questions/14395967/proper-initialization-of-static-constexpr-array-in-class-template
+constexpr float ControlAllocationCGI::sigma_eta[2];
+constexpr float ControlAllocationCGI::r_sigma_eta[2];
 
+/**
+ * This function sets up the effectiveness matrix and the trim value, which should be called after the
+ * vehicle configuration is changed.
+ * @param effectiveness The effectiveness matrix (typically from a ActuatorEffectiveness module, store in Configuration)
+ * @param actuator_trim The trim value of the actuators (typically from a ActuatorEffectiveness module)
+ * @param linearization_point The linearization point of the actuators (typically from a ControlAllocation module)
+ * @param num_actuators The number of actuators
+ * @param update_normalization_scale Whether to update the normalization scale
+ */
 void
 ControlAllocationCGI::setEffectivenessMatrix(
-	const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &effectiveness,
-	const ActuatorVector &actuator_trim, const ActuatorVector &linearization_point, int num_actuators,
+	const matrix::Matrix<float, ControlAllocation::NUM_AXES,
+	ControlAllocation::NUM_ACTUATORS> &effectiveness,
+	const ActuatorVector &actuator_trim,
+	const ActuatorVector &linearization_point, int num_actuators,
 	bool update_normalization_scale)
 {
 	ControlAllocation::setEffectivenessMatrix(effectiveness, actuator_trim, linearization_point, num_actuators,
@@ -54,7 +68,10 @@ ControlAllocationCGI::setEffectivenessMatrix(
 	_mix_update_needed = true;
 
 	// Initialize mwmt
-	_mwmt0 = _effectiveness * _effectiveness.transpose();
+	_eff = _effectiveness.slice<NUM_AXES, NUM_F>(0, 0);
+	_mwmt0 = _eff * _eff.transpose();
+	_f.setZero();
+	_f_c.setZero();
 
 	// Initialize Choleskey decomposition
 	_L0 = matrix::cholesky(_mwmt0);
@@ -62,100 +79,182 @@ ControlAllocationCGI::setEffectivenessMatrix(
 	// Setup initial local admissible bounds
 	for (int i = 0; i < NUM_MODULES; i++) {
 		// Calculate lower and upper bound
-		const uint8_t eta_idx = _actuator_idx_offset + 2*i;
-		for (int k = 0; k < 2; k++){
-			const auto vmin = _actuator_min(eta_idx + k);
-			const auto vmax = _actuator_max(eta_idx + k);
+		// Initial local bounds are set to the entire Admissible Force Space
+		_lower(i, 0) = -sigma_eta[0];
+		_upper(i, 0) =  sigma_eta[0];
 
-			_lower(i, k) = vmin;
-			_upper(i, k) = vmax;
-		}
+		_lower(i, 1) = -sigma_eta[1];
+		_upper(i, 1) =  sigma_eta[1];
+
+		_lower(i, 2) = f_min;
+		_upper(i, 2) = f_max;
 	}
-
-	// TODO: update bounds
 }
 
+
+/**
+ * Allocate new controls. Call this function to inverse the effectiveness matrix
+ * using CGI, and then calculate _actuator_sp from _control_sp within the local
+ * admissible force space.
+ *
+ * The output, i.e. _actuator_sp is in the format described as follows
+ * index       |       2 x #module     |       2 x #module     |
+ * module id   |---0---|---1---|-------|---0---|---1---|-------|
+ * upper/lower |-0-|-1-|-0-|-1-|-------|-0-|-1-|-0-|-1-|-------|
+ * parameter   |Tf0|Td0|Tf1|Td1|-------|etx|ety|etx|ety|-------|
+ * unit        |N  |Nm |N  |Nm |-------|rad|rad|rad|rad|-------|
+ */
 void
 ControlAllocationCGI::allocate(){
+	// Coordinate transformation
+	// const float team_t_max = NUM_MODULES * 0.01f;
+	const float team_t_max = 15.0f;
+	const float team_f_max = NUM_MODULES * f_max;
+	const float coord_trans_f[6] = {team_t_max, -team_t_max, -team_t_max,
+					team_f_max, -team_f_max, -team_f_max};
+	// const float coord_trans_f[6] = {team_t_max, -team_t_max, -team_t_max, team_f_max, -team_f_max, -team_f_max};
+	const ControlVector coord_trans(coord_trans_f);
+
 	// Initialization
-	_prev_actuator_sp = _actuator_sp;
+	active_agents = ~0;
 	_f_c.setZero();
 	if (_rate_constraints_considered)
 		calc_local_admissible();
 
-	ControlVector remaining_control = _control_sp;
+	if (-_control_sp(5) < -0.05f)
+		_control_sp.slice<3, 1>(0, 0) = _control_sp.slice<3, 1>(0, 0) * 0.0f;
+
+	ControlVector remaining_control = coord_trans.emult(_control_sp);
+	// matrix::constrain(remaining_control)
+
 	// The decomposed mwmt
 	_mwmt = _mwmt0;
 	_L = _L0;
+	#ifdef CA_CGI_DEBUGGER
+	uint8_t iter = 0;
+	#endif // CA_CGI_DEBUGGER
 
 	while (calc_num_active_agents() >= 3) {
 		// mwmt should be guaranteed to be full rank
+		#ifdef CA_CGI_DEBUGGER
+		printf("\n===================================================\nIter: %d \n", iter++);
+		printf("remaining control: \n");
+		print_vector(remaining_control);
+		printf("\n");
+		#endif // CA_CGI_DEBUGGER
 
 		// override previous allocation _f
 		truncated_allocation(remaining_control, _f, _L);
 
+		#ifdef CA_CGI_DEBUGGER
+		printf("Pre-allocated results _f: \n");
+		print_vector(_f);
+		printf("Current saturated controls: _f_c \n");
+		print_vector(_f_c);
+		printf("Evaluate truncated allocation: u \n");
+		print_vector(getAllocatedControl());
+		printf("\n");
+		#endif // CA_CGI_DEBUGGER
+
 		_f = _f + _f_c;
+		#ifdef CA_CGI_DEBUGGER
+		printf("Updated allocation _f: \n");
+		print_vector(_f);
+		#endif // CA_CGI_DEBUGGER
 
 		ActiveAgent violation_idx;
+		matrix::Vector3f f_ci;
 
 		// calculate the agent has the largest norm violation
 		// The saturated force vector will be directly updated to _f
-		if (!calc_saturated_agent_id(violation_idx)) {
+		if (!calc_saturated_agent_id(violation_idx, f_ci)) {
 			// break if the requested control is satisfied
 			// mark that the control can be satisfied
+			#ifdef CA_CGI_DEBUGGER
+			printf("\n===================================================\n");
+			printf("f: \n");
+			// _f.slice<3, 1>(3*violation_idx, 0) = f_ci;
+			print_vector(_f);
+			printf("\n");
+
+			printf("u: \n");
+			print_vector(getAllocatedControl());
+			printf("\n");
+			printf("Allocation satisfied \n");
+			#endif // CA_CGI_DEBUGGER
 			break;
 		}
+		#ifdef CA_CGI_DEBUGGER
+		printf("The saturated agent: %d \n", violation_idx);
+		#endif // CA_CGI_DEBUGGER
 
 		// downdating and check remaining rank
 		bool full_rank = update_mwmt(violation_idx, _L);
-		if (full_rank) {
+		if (!full_rank) {
 			// mark that it fails to fulfill the requested control
+			#ifdef CA_CGI_DEBUGGER
+			printf("\n===================================================\n");
+			printf("Rank lose \n");
+			#endif // CA_CGI_DEBUGGER
 			break;
 		}
 
 		// update f_c
-		const matrix::Vector3f f_ci(_f.slice<3, 1>(4*violation_idx, 0));
 		set_inactive_agent(violation_idx);
-		_f_c.slice<3, 1>(4*violation_idx, 0) = f_ci;
+		_f_c.slice<3, 1>(3*violation_idx, 0) = f_ci;
 
-		// Only change the components that is need to be updated
-		const matrix::Matrix<float, NUM_AXES, 3> eff_slice(_effectiveness.slice<NUM_AXES, 3>(4*violation_idx, 0));
+		// Only change the components that is needed to be updated
+		const matrix::Matrix<float, NUM_AXES, 3> eff_slice = _eff.slice<NUM_AXES, 3>(0, 3*violation_idx);
 		remaining_control = remaining_control - eff_slice * f_ci;
+
+		#ifdef CA_CGI_DEBUGGER
+		printf("f_c: \n");
+		print_vector(_f_c);
+
+		printf("f: \n");
+		_f.slice<3, 1>(3*violation_idx, 0) = f_ci;
+		print_vector(_f);
+
+		printf("u: \n");
+		print_vector(getAllocatedControl());
+		printf("\n");
+
+		printf("Allocation: \n");
+		printf("Single: ");
+		print_vector(_eff * _f_c);
+		printf("Total : ");
+		print_vector(eff_slice * f_ci);
+		printf("\n");
+		#endif //CA_CGI_DEBUGGER
 	}
 
 	// transform f to _actuator_sp
 	for (ActiveAgent i = 0; i < NUM_MODULES; i++) {
 		matrix::Vector3f raw;
-		// float w_p1, w_p2;
 
 		// only check for active agents
 		if (active_agents & (1 << i)) {
-			const matrix::Vector3f f_i( _f.slice<3, 1>(4*i, 0) );
+			const matrix::Vector3f f_i( _f.slice<3, 1>(3*i, 0) );
 
 			// inverse_transform: f_i -> raw
 			inverse_transform(raw, f_i);
-
-			// Propeller speed inverse mapping
-			// tf -> w_p1, w_p2
-			// tf_inverse_transform(raw(2), w_p1, w_p2);
 		}
 		else {
 			raw.setZero();
-			// w_p1 = 0;
-			// w_p2 = 0;
 		}
 
 		const uint8_t motor_idx = 2*i;
 		const uint8_t eta_idx = _actuator_idx_offset + 2*i;
-		_actuator_sp(motor_idx  ) = raw(2);  // Tf    (Nm)
+		_actuator_sp(motor_idx  ) = raw(2);  // Tf    (N)
 		_actuator_sp(motor_idx+1) = 0;       // Td    (Nm)
 		_actuator_sp(eta_idx  )   = raw(0);  // eta_x (rad)
 		_actuator_sp(eta_idx+1)   = raw(1);  // eta_y (rad)
-		// _actuator_sp(motor_idx  ) = _actuator_trim(motor_idx  ) + w_p1;
-		// _actuator_sp(motor_idx+1) = _actuator_trim(motor_idx+1) + w_p2;
-		// _actuator_sp(eta_idx  ) = _actuator_trim(eta_idx  ) + raw(0);
-		// _actuator_sp(eta_idx+1) = _actuator_trim(eta_idx+1) + raw(1);
 	}
+
+	// Warning: The post-modification in actuator effectiveness will not affect the inner state.
+	// TODO: This should be replaced using internal state feedback
+	// All the control allocation codes may require to be moved to ActuatorEffectiveness.
+	_prev_actuator_sp = _actuator_sp;
 }
 
 /**
@@ -176,7 +275,23 @@ ControlAllocationCGI::truncated_allocation(
 
 	// meta control vector
 	const ControlVector u_M = L_inv.T() * L_inv * u;
-	out_f = _effectiveness.T() * u_M;
+
+	// truncated allocation
+	for (int k=0; k<3*NUM_MODULES; ++k) {
+		if (active_agents & (1 << (k / 3))) {
+			out_f(k) = matrix::Vector<float, NUM_AXES>(_eff.slice<NUM_AXES, 1>(0, k)).dot(u_M);
+		}
+		else {
+			out_f(k) = 0;
+		}
+	}
+	// out_f = _eff.T() * u_M;
+	// for (int k=0; k<3*NUM_MODULES; ++k) {
+	// 	if (active_agents & (1 << (k / 3))) {}
+	// 	else {
+	// 		out_f(k) = 0;
+	// 	}
+	// }
 }
 
 
@@ -189,7 +304,7 @@ ControlAllocationCGI::truncated_allocation(
  */
 bool
 ControlAllocationCGI::update_mwmt(int downdating_idx, matrix::SquareMatrix<float, NUM_AXES> &out_L){
-	matrix::Matrix<float, ControlAllocation::NUM_AXES, 3> v(_effectiveness.slice<NUM_AXES, 3>(3*downdating_idx, 0));
+	const matrix::Matrix<float, ControlAllocation::NUM_AXES, 3> v = _eff.slice<NUM_AXES, 3>(0, 3*downdating_idx);
 	_mwmt = _mwmt - v * v.T();
 
 	// check rank
@@ -212,51 +327,68 @@ ControlAllocationCGI::calc_local_admissible(){
 		// Calculate lower and upper bound
 		const uint8_t eta_idx = _actuator_idx_offset + 2*i;
 		for (int k = 0; k < 2; k++){
-			const auto sp = _prev_actuator_sp(eta_idx + k);
-			const auto vrate = _actuator_slew_rate_limit(eta_idx + k);
-			const auto vmin = _actuator_min(eta_idx + k);
-			const auto vmax = _actuator_max(eta_idx + k);
+			// TODO: Check the domain of actuator setpoints
+			const float sp = _prev_actuator_sp(eta_idx + k);
+			const float vrate = r_sigma_eta[k];
+			const float vmin = -sigma_eta[k];
+			const float vmax =  sigma_eta[k];
 
 			_lower(i, k) = (sp - vrate < vmin) ? vmin : (sp - vrate);
 			_upper(i, k) = (sp + vrate > vmax) ? vmax : (sp + vrate);
+			_lower(i, k) = f_min;
+			_upper(i, k) = f_max;
 		}
 	}
 
 	// TODO: the maximum thrust (f_max) must be considered
+	// The maximum thrust is fixed to f_max currently.
 }
 
 
 /**
  * Calculate the agent id with the largest violation norm
  * @param agent_idx output, the agent that is saturated
- * @param f_ci output, the saturated force of the output agent
  *
  * @return if there is an agent saturated
  */
 bool
-ControlAllocationCGI::calc_saturated_agent_id(ActiveAgent &agent_idx)
+ControlAllocationCGI::calc_saturated_agent_id(ActiveAgent &agent_idx, matrix::Vector3f &f_ci)
 {
 	float largest_err = -1;
 
 	for (ActiveAgent i = 0; i < NUM_MODULES; i++) {
 		// only check for active agents
 		if (active_agents & (1 << i)) {
-			const matrix::Vector3f f_i( _f.slice<3, 1>(4*i, 0) );
+			const matrix::Vector3f f_i( _f.slice<3, 1>(3*i, 0) );
 			matrix::Vector3f raw;
 			matrix::Vector3f f_i_sat;
 
 			// inverse_transform: f_i -> raw
 			inverse_transform(raw, f_i);
+			#ifdef CA_CGI_DEBUGGER
+			printf("Agent %d, inverse transform: \n", i);
+			printf("From force(%7.3f, %7.3f, %7.3f) to raw(%7.3f, %7.3f, %7.3f)\n",
+				(double)f_i(0), (double)f_i(1), (double)f_i(2),
+				(double)raw(0), (double)raw(1), (double)raw(2));
+			#endif // CA_CGI_DEBUGGER
 
-			// check if saturated
+			// check if saturated, raw <= saturated controls
 			// TODO: the maximum thrust (f_max) must be considered
 			bool legal = true;
-			for (int k=0; k<2 && legal; k++) {
-				if ( _lower(i, k) <= raw(k) ) {
+			for (int k=0; k<3 && legal; k++) {
+				if ( raw(k) < _lower(i, k) ) {
+					#ifdef CA_CGI_DEBUGGER
+					printf("- Agent %d, entry %d violate lower constraints: \n", i, k);
+					printf("- Raw ( %7.3f ) < Lower ( %7.3f ) \n", (double)raw(k), (double)_lower(i, k));
+					#endif // CA_CGI_DEBUGGER
 					legal = false;
 					raw(k) = _lower(i, k);
 				}
-				else if ( raw(k) <= _upper(i, k) ) {
+				else if ( _upper(i, k) < raw(k) ) {
+					#ifdef CA_CGI_DEBUGGER
+					printf("- Agent %d, entry %d violate upper constraints: \n", i, k);
+					printf("- Raw ( %7.3f ) > Upper ( %7.3f ) \n", (double)raw(k), (double)_upper(i, k));
+					#endif // CA_CGI_DEBUGGER
 					legal = false;
 					raw(k) = _upper(i, k);
 				}
@@ -264,15 +396,19 @@ ControlAllocationCGI::calc_saturated_agent_id(ActiveAgent &agent_idx)
 			// skip if this agent is not saturated
 			if (legal) continue;
 
-			// forward_transform: raw -> f_i
+			// forward_transform: raw -> f_i_sat
 			forward_transform(raw, f_i_sat);
 
 			const float err_norm = (f_i - f_i_sat).norm_squared();
+			#ifdef CA_CGI_DEBUGGER
+			printf("- Error norm: %7.3f\n", (double)err_norm);
+			#endif // CA_CGI_DEBUGGER
 			if (err_norm > largest_err){
 				largest_err = err_norm;
 				agent_idx = i;
 			}
-			_f.slice<3, 1>(4*i, 0) = f_i_sat;
+			// _f.slice<3, 1>(3*i, 0) = f_i_sat;
+			f_ci = f_i_sat;
 		}
 	}
 
@@ -280,49 +416,65 @@ ControlAllocationCGI::calc_saturated_agent_id(ActiveAgent &agent_idx)
 }
 
 /**
+ * This function is used to transform the force vector to the raw control vector.
  * @param raw: output, eta_x, eta_y, Tf
  * @param f_i: input, force vector of a single agent
  */
-void ControlAllocationCGI::inverse_transform(matrix::Vector3f &raw, const matrix::Vector3f &f_i){
-	// float &eta_x, float &eta_y, float &T_f,
+void ControlAllocationCGI::inverse_transform(
+	matrix::Vector3f &raw, const matrix::Vector3f &f_i) const
+{
+	// TODO: To tackle negative z-axis forces
+	const float minimum_z_thrust = f_min;
+	if (f_i(2) < minimum_z_thrust) {
+		raw.setZero();
+	}
+	else {
+		// T_f = || f_i ||_2
+		raw(2) = f_i.norm();
 
-	// T_f = || f_i ||_2
-	raw(2) = f_i.norm();
+		// eta_x = asin(-y, T_f)
+		raw(0) = std::asin(-f_i(1) / raw(2));
 
-	// eta_x = asin(-y, T_f)
-	raw(0) = std::asin(-f_i(1) / raw(2));
+		// eta_y = atan2(x, z)
+		raw(1) = std::atan2(f_i(0), f_i(2));
 
-	// eta_y = atan2(x, z)
-	raw(1) = std::atan2(f_i(0), f_i(2));
+		if (raw(2) < 0.1f) {
+			raw(0) *= 0;
+			raw(1) *= 0;
+		}
+	}
 }
 
 /**
+ * This function is used to transform the raw control vector to the force vector.
  * @param raw: input, eta_x, eta_y, Tf
  * @param f_i: output, input, force vector of a single agent
  */
-void ControlAllocationCGI::forward_transform(const matrix::Vector3f &raw, matrix::Vector3f &f_i){
+void ControlAllocationCGI::forward_transform(const matrix::Vector3f &raw, matrix::Vector3f &f_i) {
 	// const float &eta_x, const float &eta_y, const float &T_f,
 	f_i(0) = std::cos(raw(0)) * std::sin(raw(1)) * raw(2);
 	f_i(1) = -std::sin(raw(0)) * raw(2);
 	f_i(2) = std::cos(raw(0)) * std::cos(raw(1)) * raw(2);
 }
 
-/**
- * Inverse transform from Tf to w_p1 and w_p2
- *     +-   -+           +-          -+     +-      -+
- *     | T_f |           |  c_l  c_l  |     | w_p1^2 |
- *     |     | = rho d^4 |            |  =  |        |
- *     | T_d |           | -dc_d dc_d |     | w_p2^2 |
- *     +-   -+           +-          -+     +-      -+
- *
- *                        ____________
- *                    1   |    T_f
- *    w_p1 = w_p2 = ----- | ----------
- *                   d^2  | 2 rho c_l
- *
- */
-void ControlAllocationCGI::tf_inverse_transform(const float &tf, float &w_p1, float &w_p2){
-	constexpr float c = 1.0f / (d * d * sqrtf(2 * rho * c_l));
-	w_p1 = sqrtf(tf) * c;
-	w_p2 = w_p1;
+#ifdef CA_CGI_DEBUGGER
+template<size_t M, size_t N>
+void ControlAllocationCGI::print_vector(const matrix::Matrix<float, M, N> &mat) const {
+	if (N != 1) {
+		for (size_t m=0; m<M; ++m) {
+			for (size_t n=0; n<N; ++n) {
+				printf("\t%7.4f", (double)mat(m, n));
+			}
+			printf("\n");
+		}
+	}
+	else {
+		for (size_t n=0; n<N; ++n) {
+			for (size_t m=0; m<M; ++m) {
+				printf("\t%7.4f", (double)mat(m, n));
+			}
+			printf("\n");
+		}
+	}
 }
+#endif // CA_CGI_DEBUGGER
