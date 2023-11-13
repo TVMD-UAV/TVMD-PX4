@@ -54,3 +54,6 @@ px4_add_module(
 		px4_work_queue
 		SlewRate
 )
+
+px4_add_functional_gtest(SRC ActuatorEffectivenessVTOL_TVMD_Test.cpp LINKLIBS ActuatorEffectiveness ControlAllocation)
+px4_add_functional_gtest(SRC ActuatorEffectivenessVTOL_TVMD_functional_Test.cpp LINKLIBS ActuatorEffectiveness ControlAllocation)
