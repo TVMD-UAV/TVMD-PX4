@@ -1,7 +1,6 @@
 __max_num_mc_motors: &max_num_mc_motors 12
 __max_num_servos: &max_num_servos 8
 __max_num_tilts: &max_num_tilts 8
-__max_num_modules: &max_num_modules 4
 
 module_name: Control Allocation
 
@@ -44,8 +43,9 @@ parameters:
             values:
                 0: Pseudo-inverse with output clipping
                 1: Pseudo-inverse with sequential desaturation technique
-                2: Automatic
-            default: 2
+                2: Cascade Generalized Inverse
+                3: Automatic
+            default: 3
 
         # Motor parameters
         CA_R_REV:
@@ -559,7 +559,7 @@ parameters:
             decimal: 2
             increment: 0.1
             unit: m
-            num_instances: *max_num_modules
+            num_instances: *max_num_tilts
             min: -100
             max: 100
             default: 0.0
@@ -570,7 +570,7 @@ parameters:
             decimal: 2
             increment: 0.1
             unit: m
-            num_instances: *max_num_modules
+            num_instances: *max_num_tilts
             min: -100
             max: 100
             default: 0.0
@@ -581,7 +581,7 @@ parameters:
             decimal: 2
             increment: 0.1
             unit: m
-            num_instances: *max_num_modules
+            num_instances: *max_num_tilts
             min: -100
             max: 100
             default: 0.0
@@ -590,7 +590,7 @@ parameters:
                 short: Agent orientation rotated by 90 degree along z-axis
                 long: Only four possible values, 4 * 90 back to 0
             type: enum
-            num_instances: *max_num_modules
+            num_instances: *max_num_tilts
             values:
                 0: '0'
                 1: '1'
@@ -604,7 +604,7 @@ parameters:
             type: float
             decimal: 2
             increment: 0.1
-            num_instances: *max_num_modules
+            num_instances: *max_num_tilts
             min: -100
             max: 100
             default: 1.0
@@ -615,7 +615,7 @@ parameters:
             type: float
             decimal: 2
             increment: 0.1
-            num_instances: *max_num_modules
+            num_instances: *max_num_tilts
             min: -100
             max: 100
             default: 1.0
@@ -666,6 +666,7 @@ mixer:
                 advanced: true
         module:
             functions: 'TVMD_Module'
+            # functions: 'Disabled'
             actuator_testing_values:
                 min: -1
                 max: 1
