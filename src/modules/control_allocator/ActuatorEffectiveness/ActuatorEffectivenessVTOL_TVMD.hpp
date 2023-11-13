@@ -42,20 +42,29 @@
 #pragma once
 
 #include "ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
-#include "ActuatorEffectivenessTilts.hpp"
 
 #include <px4_platform_common/module_params.h>
 
 #include <uORB/topics/normalized_unsigned_setpoint.h>
-#include <uORB/topics/tiltrotor_extra_controls.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/Subscription.hpp>
+
+using namespace time_literals;
+
+#define ACTUATOR_EFFECTIVENESS_DEBUGGER
 
 class ActuatorEffectivenessVTOL_TVMD : public ModuleParams, public ActuatorEffectiveness
 {
 public:
 	static constexpr int NUM_AGENTS_MAX = 4;
+
+	// TODO: The bias terms are needed to be determined
+	// static constexpr float Tf0 = -2.9717;
+	// static constexpr float Td0 =  0.0040;
+	static constexpr float c_l = 10.2645f;
+	static constexpr float c_d =  0.2132f;
+	static constexpr float Tf0 =  0.0000f;
+	static constexpr float Td0 =  0.0000f;
 
 	// region [Geometry Struct Definitions]
 	struct ModuleGeometry {
@@ -77,6 +86,10 @@ public:
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
+	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override {
+		allocation_method_out[0] = AllocationMethod::CASCADED_PSEUDO_INVERSE;
+	}
+
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
@@ -84,6 +97,14 @@ public:
 
 	const char *name() const override { return "VTOL TVMD"; }
 
+	// For unit test only
+	void setGeometry(const Geometry geo) { _geometry = geo; };
+
+	// void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
+
+	void tf_inverse_mapping(const uint8_t module_id, const matrix::Vector2f &tftd, matrix::Vector2f &u_prop) const;
+
+	void tf_mapping(const uint8_t module_id, matrix::Vector2f &tftd, const matrix::Vector2f &u_prop) const;
 
 protected:
 
@@ -133,5 +154,5 @@ private:
 	uint64_t _armed_time{0};
 
 	inline uint8_t get_motor_idx(uint8_t module_id, uint8_t offset) { return 2 * module_id + offset; };
-	inline uint8_t get_servo_idx(uint8_t module_id, uint8_t offset) { return 2 * module_id + offset + 4 * _geometry.num_agents; };
+	inline uint8_t get_servo_idx(uint8_t module_id, uint8_t offset) { return 2 * module_id + offset + 2 * _geometry.num_agents; };
 };

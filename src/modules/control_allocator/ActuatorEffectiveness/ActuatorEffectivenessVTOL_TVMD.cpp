@@ -47,7 +47,6 @@ ActuatorEffectivenessVTOL_TVMD::ActuatorEffectivenessVTOL_TVMD(ModuleParams *par
 	: ModuleParams(parent)
 {
 	_param_handles.num_agents = param_find("CA_MD_COUNT");
-	_param_handles.rotor_count = param_find("CA_ROTOR_COUNT");
 
 	// Request module configuration param settings
 	for (int i = 0; i < NUM_AGENTS_MAX; ++i) {
@@ -66,26 +65,32 @@ ActuatorEffectivenessVTOL_TVMD::ActuatorEffectivenessVTOL_TVMD(ModuleParams *par
 		snprintf(buffer, sizeof(buffer), "CA_MD%u_AZ", i);
 		_param_handles.module_geometry[i].ax_psi = param_find(buffer);
 
+		snprintf(buffer, sizeof(buffer), "CA_MD%u_X_GR", i);
+		_param_handles.module_geometry[i].gear_ratio[0] = param_find(buffer);
+
+		snprintf(buffer, sizeof(buffer), "CA_MD%u_Y_GR", i);
+		_param_handles.module_geometry[i].gear_ratio[1] = param_find(buffer);
+
 		for (int j = 0; j < 2; ++j) {
 			// Aerial dynamics parameters
-			snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_CT", i);
+			snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_CT", 2*i+j);
 			_param_handles.module_geometry[i].c_l[j] = param_find(buffer);
 
-			snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_KM", i);
+			snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_KM", 2*i+j);
 			_param_handles.module_geometry[i].c_d[j] = param_find(buffer);
 
 			// Servo
-			snprintf(buffer, sizeof(buffer), "CA_SV_TL%u_MINA", i);
+			snprintf(buffer, sizeof(buffer), "CA_SV_TL%u_MINA", 2*i+j);
 			_param_handles.module_geometry[i].servo_min[j] = param_find(buffer);
 
-			snprintf(buffer, sizeof(buffer), "CA_SV_TL%u_MAXA", i);
+			snprintf(buffer, sizeof(buffer), "CA_SV_TL%u_MAXA", 2*i+j);
 			_param_handles.module_geometry[i].servo_max[j] = param_find(buffer);
 
 			// slew
-			snprintf(buffer, sizeof(buffer), "CA_R%u_SLEW", i);
+			snprintf(buffer, sizeof(buffer), "CA_R%u_SLEW", 2*i+j);
 			_param_handles.module_geometry[i].motor_slew[j] = param_find(buffer);
 
-			snprintf(buffer, sizeof(buffer), "CA_SV%u_SLEW", i);
+			snprintf(buffer, sizeof(buffer), "CA_SV%u_SLEW", 2*i+j);
 			_param_handles.module_geometry[i].servo_slew[j] = param_find(buffer);
 		}
 	}
@@ -109,6 +114,7 @@ void ActuatorEffectivenessVTOL_TVMD::updateParams()
 		PX4_ERR("param_get failed");
 		return;
 	}
+	printf("Get MD_COUNT: %d\n", (int)num_agents);
 
 	// Number of agent must be 3 ~ 4
 	_geometry.num_agents = math::constrain((int)num_agents, 3, NUM_AGENTS_MAX);
@@ -118,21 +124,27 @@ void ActuatorEffectivenessVTOL_TVMD::updateParams()
 		if (param_get(_param_handles.module_geometry[i].pos_x, &_geometry.module_geometry[i].position(0)) != 0) PX4_ERR("CAN NOT GET CV_MD_PX");
 		if (param_get(_param_handles.module_geometry[i].pos_y, &_geometry.module_geometry[i].position(1)) != 0) PX4_ERR("CAN NOT GET CV_MD_PY");
 		if (param_get(_param_handles.module_geometry[i].pos_z, &_geometry.module_geometry[i].position(2)) != 0) PX4_ERR("CAN NOT GET CV_MD_PZ");
+
+		printf("Get module %d position: (%7.3f, %7.3f, %7.3f)\n", i,
+			(double)_geometry.module_geometry[i].position(0),
+			(double)_geometry.module_geometry[i].position(1),
+			(double)_geometry.module_geometry[i].position(2));
+
 		int32_t ax_psi;
 		if (param_get(_param_handles.module_geometry[i].ax_psi, &ax_psi) != 0) PX4_ERR("CAN NOT GET CV_MD_AX");
 		_geometry.module_geometry[i].ax_psi = ax_psi;
 
 
 		for (int j = 0; j < 2; ++j) {
-			param_get(_param_handles.module_geometry[i].gear_ratio[j], &_geometry.module_geometry[i].gear_ratio[j]);
+			if (param_get(_param_handles.module_geometry[i].gear_ratio[j], &_geometry.module_geometry[i].gear_ratio[j]) != 0) PX4_ERR("CAN NOT GET GEAR");
 
-			param_get(_param_handles.module_geometry[i].motor_slew[j], &_geometry.module_geometry[i].motor_conf[j](0));
-			param_get(_param_handles.module_geometry[i].c_l[j], &_geometry.module_geometry[i].motor_conf[j](1));
-			param_get(_param_handles.module_geometry[i].c_d[j], &_geometry.module_geometry[i].motor_conf[j](2));
+			if (param_get(_param_handles.module_geometry[i].motor_slew[j], &_geometry.module_geometry[i].motor_conf[j](0)) != 0) PX4_ERR("CAN NOT GET MOTOR SLEW");
+			if (param_get(_param_handles.module_geometry[i].c_l[j], &_geometry.module_geometry[i].motor_conf[j](1)) != 0) PX4_ERR("CAN NOT GET CL");
+			if (param_get(_param_handles.module_geometry[i].c_d[j], &_geometry.module_geometry[i].motor_conf[j](2)) != 0) PX4_ERR("CAN NOT GET CD");
 
-			param_get(_param_handles.module_geometry[i].servo_slew[j], &_geometry.module_geometry[i].servo_conf[j](0));
-			param_get(_param_handles.module_geometry[i].servo_min[j], &_geometry.module_geometry[i].servo_conf[j](1));
-			param_get(_param_handles.module_geometry[i].servo_max[j], &_geometry.module_geometry[i].servo_conf[j](2));
+			if (param_get(_param_handles.module_geometry[i].servo_slew[j], &_geometry.module_geometry[i].servo_conf[j](0)) != 0) PX4_ERR("CAN NOT GET SERVO SLEW");
+			if (param_get(_param_handles.module_geometry[i].servo_min[j], &_geometry.module_geometry[i].servo_conf[j](1)) != 0) PX4_ERR("CAN NOT GET SERVO MIN");
+			if (param_get(_param_handles.module_geometry[i].servo_max[j], &_geometry.module_geometry[i].servo_conf[j](2)) != 0) PX4_ERR("CAN NOT GET SERVI MAX");
 
 			// motor rate: 1/s
 			_geometry.module_geometry[i].motor_conf[j](0) = 1.0f / _geometry.module_geometry[i].motor_conf[j](0);
@@ -148,15 +160,6 @@ void ActuatorEffectivenessVTOL_TVMD::updateParams()
 			_geometry.module_geometry[i].servo_conf[j](0) =
 				_geometry.module_geometry[i].gear_ratio[j] * (servo_max - servo_min) / _geometry.module_geometry[i].servo_conf[j](0);
 
-
-
-			// Setup scaling factor from a real one to a normalized one
-			// motors: spinning speed (rad/s) -> 0 ~ 1
-			// servos: angle (rad) -> -1 ~ 1
-			_actuator_scale(get_motor_idx(i, j)) = (1.0f - ( 0.0f)) / (1.0f - 0.0f);
-			_actuator_scale(get_servo_idx(i, j)) = (1.0f - (-1.0f)) / (servo_max - servo_min);
-
-			// TODO: battery level compensation
 		}
 	}
 }
@@ -203,43 +206,57 @@ ActuatorEffectivenessVTOL_TVMD::getEffectivenessMatrix(Configuration &configurat
 	{
 		matrix::Matrix3f Rz;
 		for (int i = 0; i < _geometry.num_agents; ++i ) {
-			genRotationMatrixRz(Rz, _geometry.module_geometry[i].ax_psi);
+			genRotationMatrixRz(Rz, M_PI_2_F * _geometry.module_geometry[i].ax_psi);
 
 			// torques
-			configuration.effectiveness_matrices[0].slice<3, 3>(3*i, 0) =
+			configuration.effectiveness_matrices[0].slice<3, 3>(0, 3*i) =
 				_geometry.module_geometry[i].position.hat() * Rz;
 
 			// thrusts
-			configuration.effectiveness_matrices[0].slice<3, 3>(3*i, 3) = Rz;
+			configuration.effectiveness_matrices[0].slice<3, 3>(3, 3*i) = Rz;
 		}
 	}
 
+	// calculate scales
+	{
+		// Setup scaling factor from a real one to a normalized one
+		// motors: maximum thrust (N) -> 0 ~ 1
+		// TODO: minimum thrust
+		// matrix::Vector2f tftd;
+		// const matrix::Vector2f u_prop(1, 1);
+		// tf_mapping(i, tftd, u_prop);
+		// _actuator_scale(get_motor_idx(i, j)) = (1.0f - ( 0.0f)) / (tftd(0) - 0.0f);
+		// TODO: record maximum thrust
+		// The scaling is dealt in tf_mapping and tf_inverse_mapping
+		for (int i = 0; i < _geometry.num_agents; ++i) {
+			for (int j = 0; j < 2; ++j) {
+				const float servo_max = _geometry.module_geometry[i].servo_conf[j](2);
+				const float servo_min = _geometry.module_geometry[i].servo_conf[j](1);
 
-	// Using the second effectiveness matrix to store meta data for control allocation.
-	// This is only used in redistributed method (CGI), because it requires bound information
-	// during allocation.
-	// Format:
-	// - motors:
-	// 	rate constraints: it is different from slew. (slew: the time required to drive servo from -1 to 1)
-	// 	c_l: lift coefficients
-	// 	c_d: drag coefficients
-	// - servos:
-	// 	rate constraints (rad/s):
-	// 	min (deg.): the angle when the servo is commanded by -1
-	// 	max (deg.): the angle when the servo is commanded by  1
-	configuration.selected_matrix = 1;
-	for (int i = 0; i < _geometry.num_agents; ++i) {
-		for (int j = 0; j < 2; ++j) {
-			const uint8_t motor_idx = 2 * i + j;
-			const uint8_t servo_idx = 2 * _geometry.num_agents + 2 * i + j;
+				_actuator_scale(get_motor_idx(i, j)) = 1.0f;
 
-			configuration.effectiveness_matrices[1].slice<3, 1>(motor_idx, 0) =
-				_geometry.module_geometry[i].motor_conf[j];
-
-			configuration.effectiveness_matrices[1].slice<3, 1>(servo_idx, 0) =
-				_geometry.module_geometry[i].servo_conf[j];
+				// servos: angle (rad) -> -1 ~ 1
+				_actuator_scale(get_servo_idx(i, j)) = (1.0f - (-1.0f)) / (servo_max - servo_min);
+			}
 		}
+
+		// TODO: battery level compensation
 	}
+	// print scales
+	#ifdef ACTUATOR_EFFECTIVENESS_DEBUGGER
+	printf("Scales for actuators in ActEffectiveness: \n");
+	for (size_t m=0; m<16; ++m) {
+		printf("\t%7.4f", (double)_actuator_scale(m));
+	}
+	printf("\n");
+
+	for (size_t m=0; m<6; ++m) {
+		for (size_t n=0; n<16; ++n) {
+			printf("\t%7.4f", (double)configuration.effectiveness_matrices[0](m, n));
+		}
+		printf("\n");
+	}
+	#endif // ACTUATOR_EFFECTIVENESS_DEBUGGER
 
 	return true;
 }
@@ -248,21 +265,30 @@ void ActuatorEffectivenessVTOL_TVMD::updateSetpoint(const matrix::Vector<float, 
 		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
+
+	#ifdef ACTUATOR_EFFECTIVENESS_DEBUGGER
+	printf("Control: (%7.3f, %7.3f, %7.3f, %7.3f, %7.3f, %7.3f)\n",
+		(double)control_sp(0), (double)control_sp(1), (double)control_sp(2),
+		(double)control_sp(3), (double)control_sp(4), (double)control_sp(5));
+	#endif // ACTUATOR_EFFECTIVENESS_DEBUGGER
+
 	// Nonlinear inverse transform
 	for (int i = 0; i < _geometry.num_agents; ++i) {
 		const matrix::Vector2f tftd = actuator_sp.slice<2, 1>(get_motor_idx(i, 0), 0);
-		tf_mapping(i, tftd, actuator_sp.slice<2, 1>(get_motor_idx(i, 0), 0));
+		matrix::Vector2f u_prop;
+		// tf_inverse_mapping(i, tftd, actuator_sp.slice<2, 1>(get_motor_idx(i, 0), 0));
+		tf_inverse_mapping(i, tftd, u_prop);
+		actuator_sp.slice<2, 1>(get_motor_idx(i, 0), 0) = u_prop;
+		#ifdef ACTUATOR_EFFECTIVENESS_DEBUGGER
+		printf("Agent %d: \n", i);
+		printf("%7.3f, \t%7.3f -> %7.3f, \t%7.3f\n", (double)tftd(0), (double)tftd(1), (double)u_prop(0), (double)u_prop(1));
+		#endif // ACTUATOR_EFFECTIVENESS_DEBUGGER
 	}
 
 	actuator_sp = actuator_sp.emult(_actuator_scale);
 }
 
-void ActuatorEffectivenessVTOL_TVMD::tf_mapping(const uint8_t module_id, const matrix::Vector2f tftd, matrix::Vector2f u_prop) const {
-	const auto c_l = _geometry.module_geometry[module_id].motor_conf[0](1);
-	const auto c_d = _geometry.module_geometry[module_id].motor_conf[0](2);
-	// TODO: The bias terms are needed to be determined
-	const float Tf0 = -2.9717;
-	const float Td0 =  0.0040;
+void ActuatorEffectivenessVTOL_TVMD::tf_inverse_mapping(const uint8_t module_id, const matrix::Vector2f &tftd, matrix::Vector2f &u_prop) const {
 
 	const matrix::Vector2f tftd0(Tf0, Td0);
 
@@ -271,6 +297,19 @@ void ActuatorEffectivenessVTOL_TVMD::tf_mapping(const uint8_t module_id, const m
 
 	u_prop = inv(W) * (tftd - tftd0);
 }
+
+void ActuatorEffectivenessVTOL_TVMD::tf_mapping(const uint8_t module_id, matrix::Vector2f &tftd, const matrix::Vector2f &u_prop) const {
+	// const auto c_l = _geometry.module_geometry[module_id].motor_conf[0](1);
+	// const auto c_d = _geometry.module_geometry[module_id].motor_conf[0](2);
+
+	const matrix::Vector2f tftd0(Tf0, Td0);
+
+	const float m[2][2] = {{c_l, c_l}, {-c_d, c_d}};
+	const matrix::SquareMatrix<float, 2> W(m);
+
+	tftd = tftd0 + W * u_prop;
+}
+
 
 bool ActuatorEffectivenessVTOL_TVMD::throttleSpoolupFinished()
 {
