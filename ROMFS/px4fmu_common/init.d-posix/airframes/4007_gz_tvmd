@@ -28,37 +28,38 @@ param set-default FD_ACT_MOT_TOUT 500
 param set-default MAV_TYPE 21
 
 param set-default CA_AIRFRAME 12
+param set-default CA_METHOD 2
 
 # Module settings
 param set-default CA_MD_COUNT 4
 
-param set-default CA_MD1_PX -1.0
-param set-default CA_MD1_PY 1.0
-param set-default CA_MD1_PZ 0
-param set-default CA_MD1_AZ 0
-param set-default CA_MD1_X_GEARRATIO 1.0
-param set-default CA_MD1_Y_GEARRATIO 1.0
+param set-default CA_MD0_PX 0.215
+param set-default CA_MD0_PY 0.215
+param set-default CA_MD0_PZ 0
+param set-default CA_MD0_AZ 1
+param set-default CA_MD0_X_GR 1.0
+param set-default CA_MD0_Y_GR 1.0
 
-param set-default CA_MD2_PX 1.0
-param set-default CA_MD2_PY 1.0
+param set-default CA_MD1_PX 0.215
+param set-default CA_MD1_PY -0.215
+param set-default CA_MD1_PZ 0
+param set-default CA_MD1_AZ 1
+param set-default CA_MD1_X_GR 1.0
+param set-default CA_MD1_Y_GR 1.0
+
+param set-default CA_MD2_PX -0.215
+param set-default CA_MD2_PY 0.215
 param set-default CA_MD2_PZ 0
 param set-default CA_MD2_AZ 0
-param set-default CA_MD2_X_GEARRATIO 1.0
-param set-default CA_MD2_Y_GEARRATIO 1.0
+param set-default CA_MD2_X_GR 1.0
+param set-default CA_MD2_Y_GR 1.0
 
-param set-default CA_MD3_PX -1.0
-param set-default CA_MD3_PY -1.0
+param set-default CA_MD3_PX -0.215
+param set-default CA_MD3_PY -0.215
 param set-default CA_MD3_PZ 0
 param set-default CA_MD3_AZ 0
-param set-default CA_MD3_X_GEARRATIO 1.0
-param set-default CA_MD3_Y_GEARRATIO 1.0
-
-param set-default CA_MD4_PX 1.0
-param set-default CA_MD4_PY -1.0
-param set-default CA_MD4_PZ 0
-param set-default CA_MD4_AZ 0
-param set-default CA_MD4_X_GEARRATIO 1.0
-param set-default CA_MD4_Y_GEARRATIO 1.0
+param set-default CA_MD3_X_GR 1.0
+param set-default CA_MD3_Y_GR 1.0
 
 # Rotor settins
 param set-default CA_ROTOR_COUNT 8
@@ -127,8 +128,8 @@ param set-default CA_SV_TL0_MAXA 30
 param set-default CA_SV_TL0_TD 0
 param set-default CA_SV_TL0_CT 1
 
-param set-default CA_SV_TL1_MINA -30
-param set-default CA_SV_TL1_MAXA 30
+param set-default CA_SV_TL1_MINA -90
+param set-default CA_SV_TL1_MAXA 90
 param set-default CA_SV_TL1_TD 90
 param set-default CA_SV_TL1_CT 1
 
@@ -137,8 +138,8 @@ param set-default CA_SV_TL2_MAXA 30
 param set-default CA_SV_TL2_TD 0
 param set-default CA_SV_TL2_CT 1
 
-param set-default CA_SV_TL3_MINA -30
-param set-default CA_SV_TL3_MAXA 30
+param set-default CA_SV_TL3_MINA -90
+param set-default CA_SV_TL3_MAXA 90
 param set-default CA_SV_TL3_TD 90
 param set-default CA_SV_TL3_CT 1
 
@@ -147,8 +148,8 @@ param set-default CA_SV_TL4_MAXA 30
 param set-default CA_SV_TL4_TD 0
 param set-default CA_SV_TL4_CT 1
 
-param set-default CA_SV_TL5_MINA -30
-param set-default CA_SV_TL5_MAXA 30
+param set-default CA_SV_TL5_MINA -90
+param set-default CA_SV_TL5_MAXA 90
 param set-default CA_SV_TL5_TD 90
 param set-default CA_SV_TL5_CT 1
 
@@ -157,8 +158,8 @@ param set-default CA_SV_TL6_MAXA 30
 param set-default CA_SV_TL6_TD 0
 param set-default CA_SV_TL6_CT 1
 
-param set-default CA_SV_TL7_MINA -30
-param set-default CA_SV_TL7_MAXA 30
+param set-default CA_SV_TL7_MINA -90
+param set-default CA_SV_TL7_MAXA 90
 param set-default CA_SV_TL7_TD 90
 param set-default CA_SV_TL7_CT 1
 
