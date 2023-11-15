@@ -27,7 +27,7 @@ param set-default FD_ACT_MOT_TOUT 500
 
 param set-default MAV_TYPE 21
 
-param set-default CA_AIRFRAME 12
+param set-default CA_AIRFRAME 13
 param set-default CA_METHOD 2
 
 # Module settings

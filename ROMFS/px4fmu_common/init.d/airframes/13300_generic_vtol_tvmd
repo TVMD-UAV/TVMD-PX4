@@ -21,7 +21,7 @@ param set-default MAV_TYPE 21
 
 param set-default EKF2_FUSE_BETA 0 # side slip fusion is currently not supported for tailsitters
 
-param set-default CA_AIRFRAME 12
+param set-default CA_AIRFRAME 13
 param set-default CA_METHOD 2
 
 # Module settings
