@@ -66,9 +66,9 @@ public device::I2C, public I2CSPIDriver<ActuatorTransporter>
 {
 public:
 	union Instruction {
-		enum ControlTypes {UNKNOWN=0, MOTORs, SERVOS};
+		enum ControlTypes {UNKNOWN=0, MOTORS, SERVOS};
 		struct {
-			uint8_t id;
+			uint8_t armed;
 			uint8_t type;
 			float control[8];
 		} data;
@@ -107,7 +107,7 @@ private:
 
 	bool check_subscription();
 
-	void broadcast_data();
+	void broadcast_data(Instruction::ControlTypes type, const float * const control, size_t size);
 };
 
 ActuatorTransporter::ActuatorTransporter(const I2CSPIDriverConfig &config) :
@@ -146,7 +146,7 @@ int ActuatorTransporter::probe()
  */
 void ActuatorTransporter::start()
 {
-	ScheduleOnInterval(100_ms); // 100 Hz
+	ScheduleOnInterval(10_ms); // 100 Hz
 }
 
 /**
@@ -156,7 +156,7 @@ void ActuatorTransporter::start()
  */
 void ActuatorTransporter::RunImpl(){
 	if (check_subscription()) {
-		broadcast_data();
+		// both topics are broadcasted
 	}
 }
 
@@ -179,6 +179,7 @@ bool ActuatorTransporter::check_subscription()
 	if (_actuator_motors_sub.updated()) {
 		if (_actuator_motors_sub.copy(&_actuator_motors)){
 			// boardcasting
+			broadcast_data(Instruction::MOTORS, _actuator_motors.control, sizeof(_actuator_motors.control));
 			_actuator_motors_updated = true;
 		}
 	}
@@ -186,19 +187,21 @@ bool ActuatorTransporter::check_subscription()
 	if (_actuator_servos_sub.updated()) {
 		if (_actuator_servos_sub.copy(&_actuator_servos)){
 			// boardcasting
+			broadcast_data(Instruction::SERVOS, _actuator_servos.control, sizeof(_actuator_servos.control));
 			_actuator_servos_updated = true;
 		}
 	}
 	return _actuator_motors_updated && _actuator_servos_updated;
 }
 
-void ActuatorTransporter::broadcast_data()
+void ActuatorTransporter::broadcast_data(Instruction::ControlTypes type, const float * const control, size_t size)
 {
 	// Boardcasting motors and servos command through I2C
+	// TODO: check size before memcpy
 	Instruction inst;
-	inst.data.id = 0;
-	inst.data.type = Instruction::ControlTypes::SERVOS;
-	memcpy(inst.data.control, _actuator_servos.control, sizeof(_actuator_servos.control));
+	inst.data.armed = _armed;
+	inst.data.type = type;
+	memcpy(inst.data.control, control, sizeof(inst.data.control));
 	int ret = transfer((uint8_t*)&inst.raw, sizeof(inst), nullptr, 0);
 	if (ret != PX4_OK) {
 		PX4_ERR("I2C transfer failed");
@@ -227,6 +230,8 @@ void ActuatorTransporter::print_usage()
 	PRINT_MODULE_USAGE_NAME("actuator_transporter", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("actuator_transporter");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(TRANSPORTER_BASEADDR);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -236,15 +241,19 @@ extern "C" __EXPORT int actuator_transporter_i2c_main(int argc, char *argv[])
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = TRANSPORTER_BASEADDR;
+	cli.bus_option = I2CSPIBusOption::I2CExternal;
+	cli.keep_running = true;
 
-	const char *verb = cli.optArg();
+	PX4_INFO("transporter main running");
+
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
 	if (!verb) {
 		ThisDriver::print_usage();
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIST_DEVTYPE_LIGHTWARE_LASER);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_TRANS_DEVTYPE_TRANSPORTER);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);
