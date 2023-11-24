@@ -17,6 +17,7 @@ ekf2 start &
 
 
 i2c_out start
+actuator_transporter_i2c start
 
 #
 # Start Control Allocator
@@ -47,3 +48,5 @@ fw_autotune_attitude_control start vtol
 # Multicopter for now until we have something for VTOL
 #
 land_detector start vtol
+
+

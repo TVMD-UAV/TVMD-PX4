@@ -56,26 +56,40 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/actuator_servos.h>
+#include <uORB/topics/actuator_outputs.h>
 
 using namespace time_literals;
 
 #define TRANSPORTER_BASEADDR 0x66
 
+// #define TRANSPORTER_CONTROL_ALLOCATION_RAW    // -1 ~ 1 double
+#define TRANSPORTER_ACTUATOR_OUTPUTS          // pwm values
+
 class ActuatorTransporter :
 public device::I2C, public I2CSPIDriver<ActuatorTransporter>
 {
 public:
+	typedef float ControlSignal_t;
+
 	union Instruction {
 		enum ControlTypes {UNKNOWN=0, MOTORS, SERVOS};
 		struct {
 			uint8_t armed;
 			uint8_t type;
-			float control[8];
+			ControlSignal_t control[8];
 		} data;
 		uint8_t raw[sizeof(data)];
 	};
 
+
 	ActuatorTransporter(const I2CSPIDriverConfig &config);
+
+	~ActuatorTransporter()
+	{
+		perf_free(_interval_perf_esc);
+		perf_free(_interval_perf_servo);
+		perf_free(_interval_perf_i2c);
+	};
 
 	int init() override;
 
@@ -92,11 +106,21 @@ private:
 	uORB::Subscription                 _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	// subscription that schedules WorkItemExample when updated
+#ifdef TRANSPORTER_CONTROL_ALLOCATION_RAW
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 	uORB::Subscription _actuator_servos_sub{ORB_ID(actuator_servos)};
 
 	actuator_motors_s _actuator_motors;
 	actuator_servos_s _actuator_servos;
+#elif defined(TRANSPORTER_ACTUATOR_OUTPUTS)
+
+	// TODO: check the instance number of actuator_outputs
+	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_outputs), 2};
+	uORB::Subscription _actuator_servos_sub{ORB_ID(actuator_outputs), 3};
+
+	actuator_outputs_s _actuator_motors;
+	actuator_outputs_s _actuator_servos;
+#endif
 
 	bool _actuator_motors_updated{false};
 	bool _actuator_servos_updated{false};
@@ -107,7 +131,11 @@ private:
 
 	bool check_subscription();
 
-	void broadcast_data(Instruction::ControlTypes type, const float * const control, size_t size);
+	void broadcast_data(Instruction::ControlTypes type, const ControlSignal_t * const control, size_t size);
+
+	perf_counter_t	_interval_perf_esc{perf_alloc(PC_INTERVAL, MODULE_NAME": ESC interval")};
+	perf_counter_t	_interval_perf_servo{perf_alloc(PC_INTERVAL, MODULE_NAME": SV interval")};
+	perf_counter_t	_interval_perf_i2c{perf_alloc(PC_INTERVAL, MODULE_NAME": I2C interval")};
 };
 
 ActuatorTransporter::ActuatorTransporter(const I2CSPIDriverConfig &config) :
@@ -172,14 +200,19 @@ bool ActuatorTransporter::check_subscription()
 		vehicle_status_s vehicle_status;
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
-			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 		}
 	}
 
 	if (_actuator_motors_sub.updated()) {
 		if (_actuator_motors_sub.copy(&_actuator_motors)){
 			// boardcasting
+#ifdef TRANSPORTER_CONTROL_ALLOCATION_RAW
 			broadcast_data(Instruction::MOTORS, _actuator_motors.control, sizeof(_actuator_motors.control));
+#elif defined(TRANSPORTER_ACTUATOR_OUTPUTS)
+			broadcast_data(Instruction::MOTORS, _actuator_motors.output, sizeof(_actuator_motors.output));
+#endif
+			perf_count(_interval_perf_esc);
 			_actuator_motors_updated = true;
 		}
 	}
@@ -187,23 +220,31 @@ bool ActuatorTransporter::check_subscription()
 	if (_actuator_servos_sub.updated()) {
 		if (_actuator_servos_sub.copy(&_actuator_servos)){
 			// boardcasting
+#ifdef TRANSPORTER_CONTROL_ALLOCATION_RAW
 			broadcast_data(Instruction::SERVOS, _actuator_servos.control, sizeof(_actuator_servos.control));
+#elif defined(TRANSPORTER_ACTUATOR_OUTPUTS)
+			broadcast_data(Instruction::SERVOS, _actuator_servos.output, sizeof(_actuator_servos.output));
+#endif
+			perf_count(_interval_perf_servo);
 			_actuator_servos_updated = true;
 		}
 	}
 	return _actuator_motors_updated && _actuator_servos_updated;
 }
 
-void ActuatorTransporter::broadcast_data(Instruction::ControlTypes type, const float * const control, size_t size)
+void ActuatorTransporter::broadcast_data(Instruction::ControlTypes type, const ControlSignal_t * const control, size_t size)
 {
 	// Boardcasting motors and servos command through I2C
-	// TODO: check size before memcpy
 	Instruction inst;
 	inst.data.armed = _armed;
 	inst.data.type = type;
-	memcpy(inst.data.control, control, sizeof(inst.data.control));
+	const size_t copy_size = sizeof(inst.data.control) < size ? sizeof(inst.data.control) : size;
+	memcpy(inst.data.control, control, copy_size);
 	int ret = transfer((uint8_t*)&inst.raw, sizeof(inst), nullptr, 0);
-	if (ret != PX4_OK) {
+	if (ret == PX4_OK) {
+		perf_count(_interval_perf_i2c);
+	}
+	else if (ret != PX4_OK) {
 		PX4_ERR("I2C transfer failed");
 	}
 
@@ -223,6 +264,18 @@ void ActuatorTransporter::broadcast_data(Instruction::ControlTypes type, const f
 void ActuatorTransporter::print_status()
 {
 	I2CSPIDriverBase::print_status();
+
+	perf_print_counter(_interval_perf_esc);
+	perf_print_counter(_interval_perf_servo);
+	perf_print_counter(_interval_perf_i2c);
+
+	PX4_INFO_RAW("\nTopic status:\nESC: %s\nServo: %s\n", _actuator_motors_sub.valid() ? "updated" : "no data", _actuator_servos_sub.valid() ? "updated" : "no data");
+
+	for (int i=0; i<10; i++) {
+		if (orb_exists(ORB_ID(actuator_outputs), i) == PX4_OK) {
+			PX4_INFO_RAW("actuator_outputs[%d] exists\n", i);
+		}
+	}
 }
 
 void ActuatorTransporter::print_usage()
