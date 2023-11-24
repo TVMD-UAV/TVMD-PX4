@@ -248,6 +248,7 @@ then
 	. px4-rc.simulator
 fi
 
+i2c_out start
 load_mon start
 battery_simulator start
 tone_alarm start

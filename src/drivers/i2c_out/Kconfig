@@ -1,0 +1,5 @@
+menuconfig DRIVERS_I2C_OUT
+	bool "i2c_out"
+	default n
+	---help---
+		Enable support for i2c_out

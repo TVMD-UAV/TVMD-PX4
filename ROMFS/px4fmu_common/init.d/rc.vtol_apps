@@ -15,6 +15,9 @@ ekf2 start &
 #                        End Estimator group selection                        #
 ###############################################################################
 
+
+i2c_out start
+
 #
 # Start Control Allocator
 #
