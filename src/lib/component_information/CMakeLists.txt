@@ -40,20 +40,34 @@
 # 5: COMP_METADATA_TYPE_ACTUATORS
 set(comp_metadata_types)
 set(comp_metadata_board "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}")
-set(s3_url "https://px4-travis.s3.amazonaws.com")
 
+set(s3_default_url "https://px4-travis.s3.amazonaws.com")
+set(translation_default_url "https://raw.githubusercontent.com/PX4/PX4-Metadata-Translations/main/translated")
+
+
+############################################################################
+# Set the server URL for the metadata files or use the default URL
+# set(s3_url s3_default_url)
+set(s3_url "https://raw.githubusercontent.com/TVMD-UAV/TVMD-Metadata-Translations/main")
+
+# Set the server URL for the translations or use the default URL
+# set(translation_url translation_default_url)
+set(translation_url "https://raw.githubusercontent.com/TVMD-UAV/TVMD-Metadata-Translations/main/translated")
+
+
+############################################################################
 set(comp_metadata_param_uri_board "${s3_url}/Firmware/{version}/${comp_metadata_board}/parameters.json.xz")
 list(FIND config_romfs_extra_dependencies "parameters_xml" index)
 if (${index} EQUAL -1)
 	set(comp_metadata_param_uri ${comp_metadata_param_uri_board})
 	# use generic URL as fallback
-	set(comp_metadata_param_uri_fallback "${s3_url}/Firmware/{version}/_general/parameters.json.xz")
+	set(comp_metadata_param_uri_fallback "${s3_default_url}/Firmware/{version}/_general/parameters.json.xz")
 else()
 	set(comp_metadata_param_uri "mftp://etc/extras/parameters.json.xz")
 	set(comp_metadata_param_uri_fallback ${comp_metadata_param_uri_board})
 endif()
 # arguments: type, metadata file, uri, fallback uri, optional translation uri
-list(APPEND comp_metadata_types "--type" "1,${PX4_BINARY_DIR}/parameters.json.xz,${comp_metadata_param_uri},${comp_metadata_param_uri_fallback},https://raw.githubusercontent.com/PX4/PX4-Metadata-Translations/main/translated/parameters_summary.json")
+list(APPEND comp_metadata_types "--type" "1,${PX4_BINARY_DIR}/parameters.json.xz,${comp_metadata_param_uri},${comp_metadata_param_uri_fallback},${translation_url}/parameters_summary.json")
 
 
 set(comp_metadata_events_uri_board "${s3_url}/Firmware/{version}/${comp_metadata_board}/all_events.json.xz")
@@ -61,12 +75,12 @@ list(FIND config_romfs_extra_dependencies "events_json" index)
 if (${index} EQUAL -1)
 	set(comp_metadata_events_uri ${comp_metadata_events_uri_board})
 	# use generic URL as fallback
-	set(comp_metadata_events_uri_fallback "${s3_url}/Firmware/{version}/_general/all_events.json.xz")
+	set(comp_metadata_events_uri_fallback "${s3_default_url}/Firmware/{version}/_general/all_events.json.xz")
 else()
 	set(comp_metadata_events_uri "mftp://etc/extras/all_events.json.xz")
 	set(comp_metadata_events_uri_fallback ${comp_metadata_events_uri_board})
 endif()
-list(APPEND comp_metadata_types "--type" "4,${PX4_BINARY_DIR}/events/all_events.json.xz,${comp_metadata_events_uri},${comp_metadata_events_uri_fallback},https://raw.githubusercontent.com/PX4/PX4-Metadata-Translations/main/translated/events_summary.json")
+list(APPEND comp_metadata_types "--type" "4,${PX4_BINARY_DIR}/events/all_events.json.xz,${comp_metadata_events_uri},${comp_metadata_events_uri_fallback},${translation_url}/events_summary.json")
 
 set(comp_metadata_actuators_uri_board "${s3_url}/Firmware/{version}/${comp_metadata_board}/actuators.json.xz")
 list(FIND config_romfs_extra_dependencies "actuators_json" index)
