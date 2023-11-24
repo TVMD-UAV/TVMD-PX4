@@ -13,7 +13,7 @@ PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
 PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=tvmd}
 
-param set-default SIM_GZ_EN 1
+param set-default I2C_OUT_EN 1
 
 param set-default SENS_EN_GPSSIM 1
 param set-default SENS_EN_BAROSIM 0
@@ -165,6 +165,8 @@ param set-default CA_SV_TL7_CT 1
 
 # Simulations Motor Output Settins
 
+param set-default SIM_GZ_EN 1
+
 param set-default SIM_GZ_EC_FUNC1 101
 param set-default SIM_GZ_EC_FUNC2 102
 param set-default SIM_GZ_EC_FUNC3 103
@@ -203,8 +205,98 @@ param set-default SIM_GZ_SV_FUNC6 206
 param set-default SIM_GZ_SV_FUNC7 207
 param set-default SIM_GZ_SV_FUNC8 208
 
-param set-default PWM_MAIN_FUNC1 10003
-param set-default PWM_MAIN_FUNC2 10004
-param set-default PWM_MAIN_FUNC3 10005
-param set-default PWM_MAIN_FUNC4 10006
+# param set-default PWM_MAIN_FUNC1 10003
+# param set-default PWM_MAIN_FUNC2 10004
+# param set-default PWM_MAIN_FUNC3 10005
+# param set-default PWM_MAIN_FUNC4 10006
 
+
+param set-default I2C_EC_FUNC1 101
+param set-default I2C_EC_FUNC2 102
+param set-default I2C_EC_FUNC3 103
+param set-default I2C_EC_FUNC4 104
+param set-default I2C_EC_FUNC5 105
+param set-default I2C_EC_FUNC6 106
+param set-default I2C_EC_FUNC7 107
+param set-default I2C_EC_FUNC8 108
+
+param set-default I2C_SV_FUNC1 201
+param set-default I2C_SV_FUNC2 202
+param set-default I2C_SV_FUNC3 203
+param set-default I2C_SV_FUNC4 204
+param set-default I2C_SV_FUNC5 205
+param set-default I2C_SV_FUNC6 206
+param set-default I2C_SV_FUNC7 207
+param set-default I2C_SV_FUNC8 208
+
+param set-default I2C_EC_MIN1 1000
+param set-default I2C_EC_MIN2 1000
+param set-default I2C_EC_MIN3 1000
+param set-default I2C_EC_MIN4 1000
+param set-default I2C_EC_MIN5 1000
+param set-default I2C_EC_MIN6 1000
+param set-default I2C_EC_MIN7 1000
+param set-default I2C_EC_MIN8 1000
+
+param set-default I2C_EC_MAX1 2000
+param set-default I2C_EC_MAX2 2000
+param set-default I2C_EC_MAX3 2000
+param set-default I2C_EC_MAX4 2000
+param set-default I2C_EC_MAX5 2000
+param set-default I2C_EC_MAX6 2000
+param set-default I2C_EC_MAX7 2000
+param set-default I2C_EC_MAX8 2000
+
+param set-default I2C_EC_DIS1 1000
+param set-default I2C_EC_DIS2 1000
+param set-default I2C_EC_DIS3 1000
+param set-default I2C_EC_DIS4 1000
+param set-default I2C_EC_DIS5 1000
+param set-default I2C_EC_DIS6 1000
+param set-default I2C_EC_DIS7 1000
+param set-default I2C_EC_DIS8 1000
+
+param set-default I2C_EC_FAIL1 -1
+param set-default I2C_EC_FAIL2 -1
+param set-default I2C_EC_FAIL3 -1
+param set-default I2C_EC_FAIL4 -1
+param set-default I2C_EC_FAIL5 -1
+param set-default I2C_EC_FAIL6 -1
+param set-default I2C_EC_FAIL7 -1
+param set-default I2C_EC_FAIL8 -1
+
+param set-default I2C_SV_MIN1 1000
+param set-default I2C_SV_MIN2 1000
+param set-default I2C_SV_MIN3 1000
+param set-default I2C_SV_MIN4 1000
+param set-default I2C_SV_MIN5 1000
+param set-default I2C_SV_MIN6 1000
+param set-default I2C_SV_MIN7 1000
+param set-default I2C_SV_MIN8 1000
+
+param set-default I2C_SV_MAX1 2000
+param set-default I2C_SV_MAX2 2000
+param set-default I2C_SV_MAX3 2000
+param set-default I2C_SV_MAX4 2000
+param set-default I2C_SV_MAX5 2000
+param set-default I2C_SV_MAX6 2000
+param set-default I2C_SV_MAX7 2000
+param set-default I2C_SV_MAX8 2000
+
+param set-default I2C_SV_DIS1 1000
+param set-default I2C_SV_DIS2 1000
+param set-default I2C_SV_DIS3 1000
+param set-default I2C_SV_DIS4 1000
+param set-default I2C_SV_DIS5 1000
+param set-default I2C_SV_DIS6 1000
+param set-default I2C_SV_DIS7 1000
+param set-default I2C_SV_DIS8 1000
+
+param set-default I2C_SV_FAIL1 -1
+param set-default I2C_SV_FAIL2 -1
+param set-default I2C_SV_FAIL3 -1
+param set-default I2C_SV_FAIL4 -1
+param set-default I2C_SV_FAIL5 -1
+param set-default I2C_SV_FAIL6 -1
+param set-default I2C_SV_FAIL7 -1
+param set-default I2C_SV_FAIL8 -1

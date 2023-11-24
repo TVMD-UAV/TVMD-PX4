@@ -352,6 +352,8 @@ parameters:
             description:
                 short: Total number of Tilt Servos
             type: enum
+            min: 0
+            max: 8
             values:
                 0: '0'
                 1: '1'
@@ -665,8 +667,7 @@ mixer:
                 index_offset: 0
                 advanced: true
         module:
-            functions: 'TVMD_Module'
-            # functions: 'Disabled'
+            functions: 'TVMD_Module' # functions: 'Disabled'
             actuator_testing_values:
                 min: -1
                 max: 1
