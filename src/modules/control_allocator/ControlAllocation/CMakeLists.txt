@@ -38,6 +38,8 @@ px4_add_library(ControlAllocation
 	ControlAllocationPseudoInverse.hpp
 	ControlAllocationSequentialDesaturation.cpp
 	ControlAllocationSequentialDesaturation.hpp
+	ControlAllocationModularBundled.cpp
+	ControlAllocationModularBundled.hpp
 	ControlAllocationCGI.cpp
 	ControlAllocationCGI.hpp
 	ControlAllocationEBRCA.cpp
