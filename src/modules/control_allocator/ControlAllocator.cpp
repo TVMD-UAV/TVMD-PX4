@@ -813,6 +813,10 @@ int ControlAllocator::print_status()
 		PX4_INFO("Method: Sequential desaturation");
 		break;
 
+	case AllocationMethod::CASCADED_PSEUDO_INVERSE:
+		PX4_INFO("Method: Cascaded pseudo-inverse");
+		break;
+
 	case AllocationMethod::AUTO:
 		PX4_INFO("Method: Auto");
 		break;
