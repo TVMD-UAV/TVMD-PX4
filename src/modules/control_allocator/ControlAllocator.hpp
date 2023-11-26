@@ -60,6 +60,7 @@
 #include <ControlAllocationPseudoInverse.hpp>
 #include <ControlAllocationSequentialDesaturation.hpp>
 #include <ControlAllocationCGI.hpp>
+#include <ControlAllocationEBRCA.hpp>
 
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>

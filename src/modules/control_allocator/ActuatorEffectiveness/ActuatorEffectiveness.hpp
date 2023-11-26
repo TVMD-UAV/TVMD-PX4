@@ -51,7 +51,8 @@ enum class AllocationMethod {
 	PSEUDO_INVERSE = 0,
 	SEQUENTIAL_DESATURATION = 1,
 	CASCADED_PSEUDO_INVERSE = 2,
-	AUTO = 3,
+	EXACT_REDISTRIBUTED_BUNDLE = 3,
+	AUTO = 4,
 };
 
 enum class ActuatorType {

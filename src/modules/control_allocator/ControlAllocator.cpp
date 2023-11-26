@@ -191,6 +191,10 @@ ControlAllocator::update_allocation_method(bool force)
 				_control_allocation[i] = new ControlAllocationCGI();
 				break;
 
+			case AllocationMethod::EXACT_REDISTRIBUTED_BUNDLE:
+				_control_allocation[i] = new ControlAllocationEBRCA();
+				break;
+
 			default:
 				PX4_ERR("Unknown allocation method");
 				break;
@@ -815,6 +819,10 @@ int ControlAllocator::print_status()
 
 	case AllocationMethod::CASCADED_PSEUDO_INVERSE:
 		PX4_INFO("Method: Cascaded pseudo-inverse");
+		break;
+
+	case AllocationMethod::EXACT_REDISTRIBUTED_BUNDLE:
+		PX4_INFO("Method: Exact redistributed bundle pseudo-inverse");
 		break;
 
 	case AllocationMethod::AUTO:
