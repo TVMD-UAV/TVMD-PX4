@@ -54,7 +54,7 @@ public:
 	static constexpr uint8_t NUM_F = 12;
 
 	// TODO: These parameters should be loaded using param_get()
-	static constexpr float d = 0.0254 * 9; // meter
+	static constexpr float prop_d = 0.0254 * 9; // meter
 	static constexpr float rho = 1.225;    // kg/m3
 	static constexpr float c_l = 0.020231; // propeller thrust coefficient
 
@@ -112,22 +112,21 @@ protected:
 	bool _mix_update_needed{false};
 	bool _rate_constraints_considered{false};
 
-	/**============================================================================
-	 * Recalculate pseudo inverse if required.
-	 * 1. active_agent set changed
-	 */
+	// ============================================================================
+	// Recalculate pseudo inverse if required.
+	// 1. active_agent set changed
 
-	/**============================================================================
-	 * Operations related to active_agent_set.
-	 */
+	// ============================================================================
+	// Operations related to active_agent_set.
+
 	inline int calc_num_active_agents() {return __builtin_popcount(active_agents); };
 
 	inline void set_inactive_agent(const ActiveAgent agent_index) {active_agents &= ~((ActiveAgent)1 << agent_index); };
 
 
-	/**============================================================================
-	 * Operations related to pseudo inverse.
-	 */
+	// ============================================================================
+	// Operations related to pseudo inverse.
+
 	void truncated_allocation(const ControlVector &u, PseudoForceVector &f, const matrix::SquareMatrix<float, NUM_AXES> &L);
 
 	bool update_mwmt(int downdating_idx, matrix::SquareMatrix<float, NUM_AXES> &L);
@@ -141,12 +140,11 @@ protected:
 	 * @param agent_idx The index of the saturated agent. Return -1 if no agent is saturated.
 	 * @return True if an agent is saturated.
 	 */
-	virtual bool calc_saturated_agent_id(ActiveAgent &agent_idx, matrix::Vector3f &f_ci) = 0;
+	// virtual bool calc_saturated_agent_id(ActiveAgent &agent_idx, matrix::Vector3f &f_ci) = 0;
 
 
-	/**============================================================================
-	 * Vehicle related operations
-	 */
+	// ============================================================================
+	// Vehicle related operations
 	void inverse_transform(matrix::Vector3f &raw, const matrix::Vector3f &f_i) const;
 
 #ifdef CA_MB_DEBUGGER

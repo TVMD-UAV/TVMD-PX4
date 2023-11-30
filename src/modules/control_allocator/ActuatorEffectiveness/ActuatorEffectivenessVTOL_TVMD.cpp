@@ -267,7 +267,7 @@ void ActuatorEffectivenessVTOL_TVMD::updateSetpoint(const matrix::Vector<float, 
 {
 
 	#ifdef ACTUATOR_EFFECTIVENESS_DEBUGGER
-	printf("Control: (%7.3f, %7.3f, %7.3f, %7.3f, %7.3f, %7.3f)\n",
+	printf("Control:   (%7.3f, %7.3f, %7.3f, %7.3f, %7.3f, %7.3f)\n",
 		(double)control_sp(0), (double)control_sp(1), (double)control_sp(2),
 		(double)control_sp(3), (double)control_sp(4), (double)control_sp(5));
 	#endif // ACTUATOR_EFFECTIVENESS_DEBUGGER

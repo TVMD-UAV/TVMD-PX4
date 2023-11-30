@@ -57,7 +57,7 @@ public:
 	void calcualte_bundled_pseudo_inverse(ControlVector &u_in) override;
 
 protected:
-	bool calc_saturated_agent_id(ActiveAgent &agent_idx, matrix::Vector3f &f_ci) override;
+	bool calc_saturated_agent_id(ActiveAgent &agent_idx, matrix::Vector3f &f_ci);
 
 private:
 };
