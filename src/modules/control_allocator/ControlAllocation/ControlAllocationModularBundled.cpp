@@ -73,6 +73,12 @@ ControlAllocationModularBundled::setEffectivenessMatrix(
 	_f.setZero();
 	_f_c.setZero();
 
+	// Minimum thrust (to ensure _f is feasible)
+	for (int i = 0; i < NUM_MODULES; i++) {
+		_f(i*3 + 2) = f_min + 0.1f;
+		_f_c(i*3 + 2) = f_min + 0.1f;
+	}
+
 	// Initialize Choleskey decomposition
 	_L0 = matrix::cholesky(_mwmt0);
 
@@ -207,9 +213,9 @@ ControlAllocationModularBundled::calc_local_admissible(){
 
 			_lower(i, k) = (sp - vrate < vmin) ? vmin : (sp - vrate);
 			_upper(i, k) = (sp + vrate > vmax) ? vmax : (sp + vrate);
-			_lower(i, k) = f_min;
-			_upper(i, k) = f_max;
 		}
+		_lower(i, 2) = f_min;
+		_upper(i, 2) = f_max;
 	}
 
 	// TODO: the maximum thrust (f_max) must be considered
@@ -226,33 +232,25 @@ void ControlAllocationModularBundled::inverse_transform(
 {
 	// TODO: To tackle negative z-axis forces
 	const float minimum_z_thrust = f_min;
-	if (f_i(2) < minimum_z_thrust) {
+
+	// T_f = || f_i ||_2
+	raw(2) = f_i.norm();
+
+	if ((raw(2) <= minimum_z_thrust) || (f_i(2) <= minimum_z_thrust)) {
 		raw.setZero();
 	}
 	else {
-		// T_f = || f_i ||_2
-		raw(2) = f_i.norm();
-
 		// eta_x = asin(-y, T_f)
 		raw(0) = std::asin(-f_i(1) / raw(2));
 
 		// eta_y = atan2(x, z)
 		raw(1) = std::atan2(f_i(0), f_i(2));
-
-		if (raw(2) < 0.1f) {
-			raw(0) *= 0;
-			raw(1) *= 0;
-		}
 	}
 }
 
 void ControlAllocationModularBundled::control_input_remapping(
 	ControlVector u_in, ControlVector &u_out)
 {
-
-	// Check z-axis input before remapping
-	if (-u_in(5) < -0.05f)
-		u_in.slice<3, 1>(0, 0) = u_in.slice<3, 1>(0, 0) * 0.0f;
 
 	// Coordinate transformation
 	// const float team_t_max = NUM_MODULES * 0.01f;
@@ -264,6 +262,12 @@ void ControlAllocationModularBundled::control_input_remapping(
 	const ControlVector coord_trans(coord_trans_f);
 
 	u_out = coord_trans.emult(u_in);
+
+	// Check z-axis input before remapping
+	if (u_out(5) < f_min * NUM_MODULES) {
+		u_out.slice<3, 1>(0, 0) = u_out.slice<3, 1>(0, 0) * 0.0f;
+		u_out(5) = f_min * NUM_MODULES;
+	}
 }
 
 /**
@@ -284,16 +288,8 @@ void ControlAllocationModularBundled::generate_actuator_sp(const PseudoForceVect
 	for (ActiveAgent i = 0; i < NUM_MODULES; i++) {
 		matrix::Vector3f raw;
 
-		// only check for active agents
-		if (active_agents & (1 << i)) {
-			const matrix::Vector3f f_i( pseudo_force.slice<3, 1>(3*i, 0) );
-
-			// inverse_transform: f_i -> raw
-			inverse_transform(raw, f_i);
-		}
-		else {
-			raw.setZero();
-		}
+		const matrix::Vector3f f_i( pseudo_force.slice<3, 1>(3*i, 0) );
+		inverse_transform(raw, f_i);
 
 		const uint8_t motor_idx = 2*i;
 		const uint8_t eta_idx = _actuator_idx_offset + 2*i;
