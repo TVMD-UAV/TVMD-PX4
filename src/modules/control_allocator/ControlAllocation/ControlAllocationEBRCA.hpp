@@ -42,22 +42,41 @@
 
 #pragma once
 #include <stdio.h>
+#include <math.h>
 
 #include "ControlAllocation.hpp"
 #include "ControlAllocationModularBundled.hpp"
 
 // #define CA_EBRCA_DEBUGGER
+// #define CA_EBRCA_ENABLE_PBP
 
 class ControlAllocationEBRCA: public ControlAllocationModularBundled
 {
 public:
-	ControlAllocationEBRCA() = default;
+	ControlAllocationEBRCA() {
+		printf("It's EBRCA running\n");
+	};
+
 	virtual ~ControlAllocationEBRCA() = default;
 
 	void calcualte_bundled_pseudo_inverse(ControlVector &u_in) override;
 
 protected:
-	bool calc_saturated_agent_id(ActiveAgent &agent_idx, matrix::Vector3f &f_ci) override;
+	float calc_saturated_agent_id(
+		int8_t &sat_idx, PseudoForceVector f0, PseudoForceVector f1);
 
 private:
+	const float _epsilon = 1e-20f;
+	void inverse_transform_on_tangent_plane(
+		matrix::Vector3f &raw, const matrix::Vector3f &f0_i, const matrix::Vector3f &f_delta_i) const;
+
+	float solve_intersections_x_axis(const matrix::Vector3f &f0_i, const matrix::Vector3f &f_delta_i, const float & y_bound);
+
+	float solve_intersections_y_axis(const matrix::Vector3f &f0_i, const matrix::Vector3f &f_delta_i, const float & x_bound);
+
+	float solve_intersections_z_axis(const matrix::Vector3f &f0_i, const matrix::Vector3f &f_delta_i, const float & z_bound);
+
+	inline float check_negative(const float &x) const {
+		return (x < 0.0f) ? INFINITY : x;
+	}
 };

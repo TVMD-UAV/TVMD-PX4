@@ -44,172 +44,294 @@
 
 
 void
-ControlAllocationEBRCA::calcualte_bundled_pseudo_inverse(ControlVector &u_in){
-	#ifdef CA_CGI_DEBUGGER
-	uint8_t iter = 0;
-	#endif // CA_CGI_DEBUGGER
+ControlAllocationEBRCA::calcualte_bundled_pseudo_inverse(ControlVector &u_in)
+{
+	#ifdef CA_EBRCA_DEBUGGER
+	printf("===================\n");
+	printf("Unallocated: (%7.3f, %7.3f, %7.3f, %7.3f, %7.3f, %7.3f)\n",
+		(double)u_in(0), (double)u_in(1), (double)u_in(2),
+		(double)u_in(3), (double)u_in(4), (double)u_in(5));
+	#endif
 
-	while (calc_num_active_agents() >= 3) {
-		// mwmt should be guaranteed to be full rank
-		#ifdef CA_CGI_DEBUGGER
-		printf("\n===================================================\nIter: %d \n", iter++);
-		printf("remaining control: \n");
-		print_vector(u_in);
-		printf("\n");
-		#endif // CA_CGI_DEBUGGER
+	for (int i = 0; i < NUM_MODULES; i++) {
+		if ( _f(i*3 + 2) < f_min )
+			_f(i*3 + 2) = f_min + 0.01f;
+	}
 
-		// override previous allocation _f
-		truncated_allocation(u_in, _f, _L);
+	// Pseudo Boundary Protection (PBP)
 
-		#ifdef CA_CGI_DEBUGGER
-		printf("Pre-allocated results _f: \n");
-		print_vector(_f);
-		printf("Current saturated controls: _f_c \n");
-		print_vector(_f_c);
-		printf("Evaluate truncated allocation: u \n");
-		print_vector(getAllocatedControl());
-		printf("\n");
-		#endif // CA_CGI_DEBUGGER
+	// previous state => using linearization point
+	ControlVector u_prev = getAllocatedControl();
+	// Redistributed Control Allocation
 
-		_f = _f + _f_c;
-		#ifdef CA_CGI_DEBUGGER
-		printf("Updated allocation _f: \n");
-		print_vector(_f);
-		#endif // CA_CGI_DEBUGGER
+	ControlVector u_delta = u_in - u_prev;
 
-		ActiveAgent violation_idx;
-		matrix::Vector3f f_ci;
+	float c = 0;
+	bool full_rank = true;
+	while (full_rank && (c < 1) && (calc_num_active_agents() >= 3)) {
+		// Calculate _f_c = M_esp^+ u
+		// let _f_c be the allocation without constraints
+		truncated_allocation(u_delta, _f_c, _L);
 
-		// calculate the agent has the largest norm violation
-		// The saturated force vector will be directly updated to _f
-		if (!calc_saturated_agent_id(violation_idx, f_ci)) {
-			// break if the requested control is satisfied
-			// mark that the control can be satisfied
-			#ifdef CA_CGI_DEBUGGER
-			printf("\n===================================================\n");
-			printf("f: \n");
-			// _f.slice<3, 1>(3*violation_idx, 0) = f_ci;
-			print_vector(_f);
-			printf("\n");
+		// solve maximum increment
+		int8_t saturated_agent = -1;
+		float d = calc_saturated_agent_id(saturated_agent, _f, _f + _f_c);
+		#ifdef CA_EBRCA_DEBUGGER
+		printf("saturated_agent: %d, d=%f\n", saturated_agent, (double)d);
+		#endif // CA_EBRCA_DEBUGGER
 
-			printf("u: \n");
-			print_vector(getAllocatedControl());
-			printf("\n");
-			printf("Allocation satisfied \n");
-			#endif // CA_CGI_DEBUGGER
+		// invalid allocation (all agents are saturated)
+		if ( (saturated_agent < 0) )
 			break;
+
+		// TODO: deal with multiple saturated agents
+		set_inactive_agent(saturated_agent);
+
+		// if no agent is saturated, then the allocation is complete
+		// update the allocation
+		if (d > 0) {
+			// the increment must not be larger than the requested control
+			d = (d > 1 - c) ? (1 - c) : d;
+			c += d;
+			_f = _f + d * _f_c;
 		}
-		#ifdef CA_CGI_DEBUGGER
-		printf("The saturated agent: %d \n", violation_idx);
-		#endif // CA_CGI_DEBUGGER
+		#ifdef CA_EBRCA_DEBUGGER
+		printf("updated c: %f, d=%f\n", (double)c, (double)d);
+		#endif // CA_EBRCA_DEBUGGER
 
 		// downdating and check remaining rank
-		bool full_rank = update_mwmt(violation_idx, _L);
-		if (!full_rank) {
-			// mark that it fails to fulfill the requested control
-			#ifdef CA_CGI_DEBUGGER
-			printf("\n===================================================\n");
-			printf("Rank lose \n");
-			#endif // CA_CGI_DEBUGGER
-			break;
-		}
-
-		// update f_c
-		set_inactive_agent(violation_idx);
-		_f_c.slice<3, 1>(3*violation_idx, 0) = f_ci;
-
-		// Only change the components that is needed to be updated
-		const matrix::Matrix<float, NUM_AXES, 3> eff_slice = _eff.slice<NUM_AXES, 3>(0, 3*violation_idx);
-		u_in = u_in - eff_slice * f_ci;
-
-		#ifdef CA_CGI_DEBUGGER
-		printf("f_c: \n");
-		print_vector(_f_c);
-
-		printf("f: \n");
-		_f.slice<3, 1>(3*violation_idx, 0) = f_ci;
-		print_vector(_f);
-
-		printf("u: \n");
-		print_vector(getAllocatedControl());
-		printf("\n");
-
-		printf("Allocation: \n");
-		printf("Single: ");
-		print_vector(_eff * _f_c);
-		printf("Total : ");
-		print_vector(eff_slice * f_ci);
-		printf("\n");
-		#endif //CA_CGI_DEBUGGER
+		full_rank = update_mwmt(saturated_agent, _L);
 	}
+
+	#ifdef CA_EBRCA_DEBUGGER
+	printf("allocation complete\n");
+	const matrix::Vector<float, NUM_AXES>  allocated = getAllocatedControl();
+	printf("Allocated: (%7.3f, %7.3f, %7.3f, %7.3f, %7.3f, %7.3f)\n",
+		(double)allocated(0), (double)allocated(1), (double)allocated(2),
+		(double)allocated(3), (double)allocated(4), (double)allocated(5));
+	#endif // CA_EBRCA_DEBUGGER
+
+	// Post Torque Enhancement
+	#ifdef CA_EBRCA_ENABLE_PBP
+	if (full_rank) {
+		if (c < 1) {
+		}
+	}
+	#endif // CA_EBRCA_ENABLE_PBP
 }
 
 /**
- * Calculate the agent id with the largest violation norm
- * @param agent_idx output, the agent that is saturated
- *
- * @return if there is an agent saturated
+ * Solve the maximum increment from f0 to the local admissible boundary
+ * along the vector f1 - f0.
+ * @param sat_idx output, the index of the saturated agent
+ * @param f0 the current allocation
+ * @param f1 the allocation without constraints
+ * @return the maximum increment
  */
-bool
-ControlAllocationEBRCA::calc_saturated_agent_id(ActiveAgent &agent_idx, matrix::Vector3f &f_ci)
+float
+ControlAllocationEBRCA::calc_saturated_agent_id(int8_t &sat_idx, PseudoForceVector f0, PseudoForceVector f1)
 {
-	float largest_err = -1;
+	float smallest_increment = INFINITY;
+	sat_idx = -1;
 
 	for (ActiveAgent i = 0; i < NUM_MODULES; i++) {
+
 		// only check for active agents
 		if (active_agents & (1 << i)) {
-			const matrix::Vector3f f_i( _f.slice<3, 1>(3*i, 0) );
-			matrix::Vector3f raw;
-			matrix::Vector3f f_i_sat;
+			#ifdef CA_EBRCA_DEBUGGER
+			printf("Agent: %d\n", i);
+			#endif // CA_EBRCA_DEBUGGER
 
-			// inverse_transform: f_i -> raw
-			inverse_transform(raw, f_i);
-			#ifdef CA_CGI_DEBUGGER
-			printf("Agent %d, inverse transform: \n", i);
-			printf("From force(%7.3f, %7.3f, %7.3f) to raw(%7.3f, %7.3f, %7.3f)\n",
-				(double)f_i(0), (double)f_i(1), (double)f_i(2),
-				(double)raw(0), (double)raw(1), (double)raw(2));
-			#endif // CA_CGI_DEBUGGER
+			const matrix::Vector3f f0_i( f0.slice<3, 1>(3*i, 0) );
+			const matrix::Vector3f f1_i( f1.slice<3, 1>(3*i, 0) );
+			const matrix::Vector3f f_delta = f1_i - f0_i;
 
-			// check if saturated, raw <= saturated controls
-			// TODO: the maximum thrust (f_max) must be considered
-			bool legal = true;
-			for (int k=0; k<3 && legal; k++) {
-				if ( raw(k) < _lower(i, k) ) {
-					#ifdef CA_CGI_DEBUGGER
-					printf("- Agent %d, entry %d violate lower constraints: \n", i, k);
-					printf("- Raw ( %7.3f ) < Lower ( %7.3f ) \n", (double)raw(k), (double)_lower(i, k));
-					#endif // CA_CGI_DEBUGGER
-					legal = false;
-					raw(k) = _lower(i, k);
-				}
-				else if ( _upper(i, k) < raw(k) ) {
-					#ifdef CA_CGI_DEBUGGER
-					printf("- Agent %d, entry %d violate upper constraints: \n", i, k);
-					printf("- Raw ( %7.3f ) > Upper ( %7.3f ) \n", (double)raw(k), (double)_upper(i, k));
-					#endif // CA_CGI_DEBUGGER
-					legal = false;
-					raw(k) = _upper(i, k);
-				}
+			// if (f_delta.norm() < 1e-10f) {
+			// 	continue;
+			// }
+
+			// inverse_transform: f_i -> raw0
+			matrix::Vector3f raw0, raw1;
+			matrix::Vector3f raw01;
+			inverse_transform(raw0, f0_i);
+			inverse_transform(raw01, f1_i);
+			inverse_transform_on_tangent_plane(raw1, f0_i, f_delta);
+
+			#ifdef CA_EBRCA_DEBUGGER
+			printf("f0: %7.3f, %7.3f, %7.3f (", (double)f0_i(0), (double)f0_i(1), (double)f0_i(2));
+			printf("raw0: %7.3f, %7.3f, %7.3f)\n", (double)raw0(0), (double)raw0(1), (double)raw0(2));
+			printf("f1: %7.3f, %7.3f, %7.3f (", (double)f1_i(0), (double)f1_i(1), (double)f1_i(2));
+			printf("raw1: %7.3f, %7.3f, %7.3f)\n", (double)raw01(0), (double)raw01(1), (double)raw01(2));
+			printf("tangent: %7.3f, %7.3f, %7.3f\n", (double)raw1(0), (double)raw1(1), (double)raw1(2));
+			#endif // CA_EBRCA_DEBUGGER
+
+			// determine local boundary
+			const float x_bound = (raw1(0) < 0) ? _lower(i,0) : _upper(i,0);
+			const float y_bound = (raw1(1) < 0) ? _lower(i,1) : _upper(i,1);
+			const float z_bound = (raw1(2) < 0) ? _lower(i,2) : _upper(i,2);
+
+			// check boundary violations, a violation should be handled right away
+			const bool eta_x_violation = ( signbit(raw0(0) - x_bound) == signbit(raw1(0)) );
+			const bool eta_y_violation = ( signbit(raw0(1) - y_bound) == signbit(raw1(1)) );
+			const bool tf_violation = ( signbit(raw0(2) - z_bound) == signbit(raw1(2)) );
+
+			#ifdef CA_EBRCA_DEBUGGER
+			printf("bounds: %7.3f, %7.3f, %7.3f\n", (double)x_bound, (double)y_bound, (double)z_bound);
+			printf("violation: %d, %d, %d\n", eta_x_violation, eta_y_violation, tf_violation);
+			#endif // CA_EBRCA_DEBUGGER
+
+			// TODO: for any active agent, there should not be any negative increment
+			if (eta_x_violation || eta_y_violation || tf_violation) {
+				// any violation => mark as saturated, and return 0 (smallest increment)
+				sat_idx = i;
+				return 0;
 			}
-			// skip if this agent is not saturated
-			if (legal) continue;
 
-			// forward_transform: raw -> f_i_sat
-			forward_transform(raw, f_i_sat);
+			// solve the intersections
+			float tx = -1, ty = -1, tz = -1;
+			tx = check_negative(solve_intersections_x_axis(f0_i, f_delta, y_bound));
+			ty = check_negative(solve_intersections_y_axis(f0_i, f_delta, x_bound));
+			tz = check_negative(solve_intersections_z_axis(f0_i, f_delta, z_bound));
 
-			const float err_norm = (f_i - f_i_sat).norm_squared();
-			#ifdef CA_CGI_DEBUGGER
-			printf("- Error norm: %7.3f\n", (double)err_norm);
-			#endif // CA_CGI_DEBUGGER
-			if (err_norm > largest_err){
-				largest_err = err_norm;
-				agent_idx = i;
+			// check the minimum violation
+			const float t_min0 = (tx < ty) ? tx : ty;
+			const float t_min = (tz < t_min0) ? tz : t_min0;
+
+			#ifdef CA_EBRCA_DEBUGGER
+			printf("intersections: %f, %f, %f, %f\n", (double)tx, (double)ty, (double)tz, (double)t_min);
+			#endif // CA_EBRCA_DEBUGGER
+
+			if ( t_min < 0 ) {
+				sat_idx = i;
+				return 0;
 			}
-			// _f.slice<3, 1>(3*i, 0) = f_i_sat;
-			f_ci = f_i_sat;
+
+			if ((t_min >= 0) && (t_min <= smallest_increment)) {
+				smallest_increment = t_min;
+				sat_idx = i;
+			}
 		}
 	}
 
-	return largest_err > 0;
+	if (smallest_increment == INFINITY)
+		smallest_increment = 1;
+
+	return smallest_increment;
+}
+
+void ControlAllocationEBRCA::inverse_transform_on_tangent_plane(
+	matrix::Vector3f &raw, const matrix::Vector3f &f0_i, const matrix::Vector3f &f_delta_i) const
+{
+	const float prob_len = 0.1;
+
+	matrix::Vector3f raw0;
+	inverse_transform(raw0, f0_i);
+
+	matrix::Vector3f ff = prob_len * f_delta_i / f_delta_i.norm();
+
+	const float jac_fa[3][3] = {
+		{-raw0(2)*sinf(raw0(0))*sinf(raw0(1)), raw0(2)*cosf(raw0(0))*cosf(raw0(1)), cosf(raw0(0))*sinf(raw0(1))},
+		{-raw0(2)*cosf(raw0(0)), 0, -sinf(raw0(0))},
+		{-raw0(2)*sinf(raw0(0))*cosf(raw0(1)), -raw0(2)*sinf(raw0(1))*cosf(raw0(0)), cosf(raw0(0))*cosf(raw0(1))}
+	};
+	const matrix::SquareMatrix3f jac_f = matrix::SquareMatrix3f(jac_fa);
+
+	raw = inv(jac_f) * ff;
+}
+
+float
+ControlAllocationEBRCA::solve_intersections_x_axis(
+	const matrix::Vector3f &f0_i, const matrix::Vector3f &f_delta_i,
+	const float & y_bound)
+{
+	if (tanf(y_bound) > 1e10f) {
+		// if sigma_y = pi/2, then the intersection is on the x-y plane
+		return - f0_i(2) / f_delta_i(2);
+	}
+	else {
+		const float v_z = f0_i(2) * tanf(y_bound);
+		const float v_delta_z = f_delta_i(2) * tanf(y_bound);
+
+		const float tx = - (f0_i(0) - v_z) / (f_delta_i(0) - v_delta_z);
+
+		// if it the starting point is on the boundary and it is not violated,
+		// then the intersection must be at infinity
+		if ( abs(f0_i(0) - v_z) < _epsilon) return INFINITY;
+
+		// there is no increment along the x-axis
+		else if ( abs(f_delta_i(0) - v_delta_z) < _epsilon) return INFINITY;
+		else return tx;
+	}
+}
+
+float
+ControlAllocationEBRCA::solve_intersections_y_axis(
+	const matrix::Vector3f &f0_i, const matrix::Vector3f &f_delta_i,
+	const float & x_bound)
+{
+	const float v_delta_y = f_delta_i(1) / tanf(x_bound);
+	const float v_y = f0_i(1) / tanf(x_bound);
+
+	const float tya = f_delta_i(0) * f_delta_i(0) + f_delta_i(2) * f_delta_i(2) - v_delta_y * v_delta_y;
+	const float tyb = f0_i(0) * f_delta_i(0) + f0_i(2) * f_delta_i(2) - v_y * v_delta_y;
+	const float tyc = f0_i(0) * f0_i(0) + f0_i(2) * f0_i(2) - v_y * v_y;
+
+	// check existence of the solution
+	if (tyb * tyb - tya * tyc < 0) {
+		return INFINITY;
+	}
+
+	// check if there is only one solution
+	else if (abs(tya) < _epsilon) {
+		if (abs(tyb) < _epsilon) return INFINITY;
+		else if (abs(tyc) < _epsilon) return INFINITY;
+		else return -tyc / (2 * tyb);
+	}
+
+	// solve the quadratic equation, and select the smaller one
+	else {
+		const float t1 = (-tyb - sqrtf(tyb * tyb - tya * tyc)) / tya;
+		const float t2 = (-tyb + sqrtf(tyb * tyb - tya * tyc)) / tya;
+		// printf("t1: %f, t2: %f\n", (double)t1, (double)t2);
+
+		// choose the smaller (nearest) one but not negative one
+		if ( t1 < t2 ) {
+			if (t1 < 0) {
+				if (t2 <= 0) return INFINITY;
+				else return t2;
+			}
+			else return t1;
+		}
+		else {
+			if (t2 < 0) {
+				if (t1 <= 0) return INFINITY;
+				else return t1;
+			}
+			else return t2;
+		}
+	}
+}
+
+float
+ControlAllocationEBRCA::solve_intersections_z_axis(
+	const matrix::Vector3f &f0_i, const matrix::Vector3f &f_delta_i,
+	const float & z_bound)
+{
+	const float kkb = f0_i.dot(f_delta_i);
+	const float kkc = f0_i.norm_squared() - z_bound * z_bound;
+	const float f_delta_i_norm = f_delta_i.norm_squared();
+
+	// only one solution
+	if (f_delta_i_norm < _epsilon) {
+		if (abs(kkc) < _epsilon) return INFINITY;
+		else if (abs(kkb) < _epsilon) return INFINITY;
+		else return - kkc / (2 * kkb);
+	}
+	// no solution
+	else if (kkb * kkb - f_delta_i_norm * kkc < 0) {
+		return INFINITY;
+	}
+	else{
+		return (-kkb + sqrtf(kkb * kkb - f_delta_i_norm * kkc)) / f_delta_i_norm;
+	}
 }
