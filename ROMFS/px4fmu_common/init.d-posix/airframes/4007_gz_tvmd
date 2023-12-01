@@ -7,7 +7,7 @@
 # @maintainer Sciyen <sciyen.ycc@gmail.com>
 #
 
-. ${R}etc/init.d/rc.vtol_defaults
+. ${R}etc/init.d/rc.tvmd_defaults
 
 PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
 PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
@@ -28,7 +28,7 @@ param set-default FD_ACT_MOT_TOUT 500
 param set-default MAV_TYPE 21
 
 param set-default CA_AIRFRAME 13
-param set-default CA_METHOD 2
+param set-default CA_METHOD 3
 
 # Module settings
 param set-default CA_MD_COUNT 4

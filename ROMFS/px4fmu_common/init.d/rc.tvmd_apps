@@ -16,19 +16,18 @@ ekf2 start &
 ###############################################################################
 
 
+i2c_out start
+actuator_transporter_i2c start
+
 #
 # Start Control Allocator
 #
 control_allocator start
 
-airspeed_selector start
-
-vtol_att_control start
-
-mc_rate_control start vtol
-mc_att_control start vtol
+mc_rate_control start
+mc_att_control start
 flight_mode_manager start
-mc_pos_control start vtol
+mc_pos_control start
 mc_hover_thrust_estimator start
 
 if param greater -s MC_AT_EN 0
@@ -36,14 +35,9 @@ then
 	mc_autotune_attitude_control start
 fi
 
-fw_rate_control start vtol
-fw_att_control start vtol
-fw_pos_control start vtol
-fw_autotune_attitude_control start vtol
-
 # Start Land Detector
 # Multicopter for now until we have something for VTOL
 #
-land_detector start vtol
+land_detector start multicopter
 
 
