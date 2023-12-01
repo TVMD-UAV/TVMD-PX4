@@ -42,6 +42,15 @@ then
 fi
 
 #
+# TVMD setup.
+#
+if [ $VEHICLE_TYPE = tvmd ]
+then
+	# Start standard vtol apps.
+	. ${R}etc/init.d/rc.tvmd_apps
+fi
+
+#
 # Airship setup.
 #
 if [ $VEHICLE_TYPE = airship ]

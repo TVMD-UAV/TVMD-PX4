@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# VTOL default parameters.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+set VEHICLE_TYPE tvmd
+
+# MAV_TYPE_VTOL_FIXEDROTOR 22
+param set-default MAV_TYPE 22
+
+# reduce aggressiveness around roll and yaw axis,
+# as VTOLs usually have high intertia and lot af drag due to wings
+param set-default MC_ROLL_P 5
+param set-default MC_ROLLRATE_MAX 120
+param set-default MC_YAW_P 2
+param set-default MC_YAWRATE_MAX 120
+# param set-default MPC_MAN_Y_MAX 90
+
+# param set-default RTL_TYPE 1
+
+# param set-default WV_EN 1
