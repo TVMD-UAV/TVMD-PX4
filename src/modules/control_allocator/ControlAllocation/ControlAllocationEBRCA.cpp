@@ -54,14 +54,19 @@ ControlAllocationEBRCA::calcualte_bundled_pseudo_inverse(ControlVector &u_in)
 	#endif
 
 	for (int i = 0; i < NUM_MODULES; i++) {
+		_f(i*3 + 0) = 0;
+		_f(i*3 + 1) = 0;
+		// _f(i*3 + 2) = f_min + 0.01f;
 		if ( _f(i*3 + 2) < f_min )
 			_f(i*3 + 2) = f_min + 0.01f;
+		if ( _f(i*3 + 2) >= f_max )
+			_f(i*3 + 2) = f_max - 0.01f;
 	}
 
 	// Pseudo Boundary Protection (PBP)
 
 	// previous state => using linearization point
-	ControlVector u_prev = getAllocatedControl();
+	ControlVector u_prev = _eff * _f;
 	// Redistributed Control Allocation
 
 	ControlVector u_delta = u_in - u_prev;
