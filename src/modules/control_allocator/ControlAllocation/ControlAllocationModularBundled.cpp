@@ -251,16 +251,6 @@ void ControlAllocationModularBundled::inverse_transform(
 void ControlAllocationModularBundled::control_input_remapping(
 	ControlVector u_in, ControlVector &u_out)
 {
-
-	// Coordinate transformation
-	// const float team_t_max = NUM_MODULES * 0.01f;
-	const float team_t_max = 15.0f;
-	const float team_f_max = NUM_MODULES * f_max;
-	const float coord_trans_f[6] = {team_t_max, -team_t_max, -team_t_max,
-					team_f_max, -team_f_max, -team_f_max};
-	// const float coord_trans_f[6] = {team_t_max, -team_t_max, -team_t_max, team_f_max, -team_f_max, -team_f_max};
-	const ControlVector coord_trans(coord_trans_f);
-
 	u_out = coord_trans.emult(u_in);
 
 	// Check z-axis input before remapping

@@ -50,23 +50,32 @@
 class ControlAllocationModularBundled: public ControlAllocation
 {
 public:
-	static constexpr uint8_t NUM_MODULES = 4;
-	static constexpr uint8_t NUM_F = 12;
-
-	// TODO: These parameters should be loaded using param_get()
-	static constexpr float prop_d = 0.0254 * 9; // meter
-	static constexpr float rho = 1.225;    // kg/m3
-	static constexpr float c_l = 0.020231; // propeller thrust coefficient
-
-	static constexpr float sigma_eta[2] = {M_PI_F / 6.0f, M_PI_F / 2.0f};
-	static constexpr float r_sigma_eta[2] = {M_PI_F / 10.0f, M_PI_F / 10.0f};
-	static constexpr float f_max = 9.818f * 1.5f;
-	// static constexpr float f_min = 0.1f;
-	static constexpr float f_min = 0.0f;
+	static constexpr uint8_t NUM_MODULES {4};
+	static constexpr uint8_t NUM_F {12};
 
 	typedef uint8_t ActiveAgent;
 	typedef matrix::Vector<float, NUM_AXES> ControlVector;
 	typedef matrix::Vector<float, NUM_F> PseudoForceVector;
+
+	// TODO: These parameters should be loaded using param_get()
+	static constexpr float prop_d {0.0254 * 9}; 	// propeller diameter in meters
+	static constexpr float rho {1.225};    			// air density in kg/m3
+	static constexpr float c_l {0.020231}; 			// propeller thrust coefficient
+
+	static constexpr float sigma_eta[2] {M_PI_F / 6.0f, M_PI_F / 2.0f};
+	static constexpr float r_sigma_eta[2] {M_PI_F / 10.0f, M_PI_F / 10.0f};
+	static constexpr float f_max {9.818f * 1.5f};	// maximum thrust of a single agent
+	static constexpr float f_min {0.01f};			// minimum thrust of a single agent
+
+	// Coordinate transformation
+	const float team_t_max {15.0f};					// maximum torque of the team
+	const float team_f_max {NUM_MODULES * f_max};	// maximum thrust of the team
+	const float coord_trans_f[6] {					// coordinate transformation coefficients
+		team_t_max, -team_t_max, -team_t_max,
+		team_f_max, -team_f_max, -team_f_max};
+	const ControlVector coord_trans {coord_trans_f};
+
+
 
 	ControlAllocationModularBundled() = default;
 	virtual ~ControlAllocationModularBundled() = default;
@@ -82,7 +91,10 @@ public:
 	 */
 	void allocate() override;
 
-	matrix::Vector<float, NUM_AXES> getAllocatedControl() const override {return _eff * _f; };
+	matrix::Vector<float, NUM_AXES> getAllocatedControl() const override {
+		// transform back to the original coordinate
+		return (_eff * _f).edivide(coord_trans); 
+	};
 
 	static void forward_transform(const matrix::Vector3f &raw, matrix::Vector3f &f_i);
 
