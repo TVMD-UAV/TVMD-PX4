@@ -46,6 +46,8 @@
 
 #include "ControlAllocation.hpp"
 #include "ControlAllocationModularBundled.hpp"
+#include <uORB/Publication.hpp>
+#include <uORB/topics/control_allocation_meta_data.h>
 
 // #define CA_EBRCA_DEBUGGER
 // #define CA_EBRCA_ENABLE_PBP
@@ -53,9 +55,7 @@
 class ControlAllocationEBRCA: public ControlAllocationModularBundled
 {
 public:
-	ControlAllocationEBRCA() {
-		printf("It's EBRCA running\n");
-	};
+	ControlAllocationEBRCA();
 
 	virtual ~ControlAllocationEBRCA() = default;
 
@@ -66,6 +66,8 @@ protected:
 		int8_t &sat_idx, PseudoForceVector f0, PseudoForceVector f1);
 
 private:
+	uORB::Publication<control_allocation_meta_data_s> _control_allocation_meta_data_pub{ORB_ID(control_allocation_meta_data)};
+
 	const float _epsilon = 1e-20f;
 	void inverse_transform_on_tangent_plane(
 		matrix::Vector3f &raw, const matrix::Vector3f &f0_i, const matrix::Vector3f &f_delta_i) const;
@@ -78,5 +80,11 @@ private:
 
 	inline float check_negative(const float &x) const {
 		return (x < 0.0f) ? INFINITY : x;
+	}
+
+	control_allocation_meta_data_s _meta_data;
+	uint8_t _iter{0};
+	uint8_t inline _idx(uint8_t aid) const {
+		return _iter * NUM_MODULES + aid;
 	}
 };

@@ -59,6 +59,7 @@ set(msg_files
 	CollisionConstraints.msg
 	CollisionReport.msg
 	ControlAllocatorStatus.msg
+	ControlAllocationMetaData.msg
 	Cpuload.msg
 	DatamanRequest.msg
 	DatamanResponse.msg
