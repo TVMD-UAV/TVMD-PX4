@@ -42,10 +42,18 @@
 
 #include "ControlAllocationEBRCA.hpp"
 
+ControlAllocationEBRCA::ControlAllocationEBRCA()
+{
+	printf("It's EBRCA running\n");
+	_control_allocation_meta_data_pub.advertise();
+}
 
 void
 ControlAllocationEBRCA::calcualte_bundled_pseudo_inverse(ControlVector &u_in)
 {
+	_iter = 0;
+	_meta_data.timestamp = hrt_absolute_time();
+	u_in.copyTo(_meta_data.control_sp);
 	#ifdef CA_EBRCA_DEBUGGER
 	printf("===================\n");
 	printf("Unallocated: (%7.3f, %7.3f, %7.3f, %7.3f, %7.3f, %7.3f)\n",
@@ -53,7 +61,7 @@ ControlAllocationEBRCA::calcualte_bundled_pseudo_inverse(ControlVector &u_in)
 		(double)u_in(3), (double)u_in(4), (double)u_in(5));
 	#endif
 
-	for (int i = 0; i < NUM_MODULES; i++) {
+	for (uint8_t i = 0; i < NUM_MODULES; i++) {
 		_f(i*3 + 0) = 0;
 		_f(i*3 + 1) = 0;
 		// _f(i*3 + 2) = f_min + 0.01f;
@@ -61,6 +69,10 @@ ControlAllocationEBRCA::calcualte_bundled_pseudo_inverse(ControlVector &u_in)
 			_f(i*3 + 2) = f_min + 0.01f;
 		if ( _f(i*3 + 2) >= f_max )
 			_f(i*3 + 2) = f_max - 0.01f;
+
+		_meta_data.f_x[_idx(i)] = _f(i*3 + 0);
+		_meta_data.f_y[_idx(i)] = _f(i*3 + 1);
+		_meta_data.f_z[_idx(i)] = _f(i*3 + 2);
 	}
 
 	// Pseudo Boundary Protection (PBP)
@@ -85,6 +97,8 @@ ControlAllocationEBRCA::calcualte_bundled_pseudo_inverse(ControlVector &u_in)
 		printf("saturated_agent: %d, d=%f\n", saturated_agent, (double)d);
 		#endif // CA_EBRCA_DEBUGGER
 
+		_meta_data.saturated_idx[_iter] = saturated_agent;
+
 		// invalid allocation (all agents are saturated)
 		if ( (saturated_agent < 0) )
 			break;
@@ -100,17 +114,31 @@ ControlAllocationEBRCA::calcualte_bundled_pseudo_inverse(ControlVector &u_in)
 			c += d;
 			_f = _f + d * _f_c;
 		}
+
+		for (uint8_t i = 0; i < NUM_MODULES; i++) {
+			_meta_data.f_x[_idx(i)] = _f(i*3 + 0);
+			_meta_data.f_y[_idx(i)] = _f(i*3 + 1);
+			_meta_data.f_z[_idx(i)] = _f(i*3 + 2);
+		}
+		_meta_data.increment[_iter] = d;
+
 		#ifdef CA_EBRCA_DEBUGGER
 		printf("updated c: %f, d=%f\n", (double)c, (double)d);
 		#endif // CA_EBRCA_DEBUGGER
 
 		// downdating and check remaining rank
 		full_rank = update_mwmt(saturated_agent, _L);
-	}
 
+		_iter += 1;
+	}
+	_meta_data.increment[_iter] = -1;
+
+	const matrix::Vector<float, NUM_AXES>  allocated_raw = _eff * _f;
+	allocated_raw.copyTo(_meta_data.allocated_control);
+	
 	#ifdef CA_EBRCA_DEBUGGER
-	printf("allocation complete\n");
 	const matrix::Vector<float, NUM_AXES>  allocated = getAllocatedControl();
+	printf("allocation complete\n");
 	printf("Allocated: (%7.3f, %7.3f, %7.3f, %7.3f, %7.3f, %7.3f)\n",
 		(double)allocated(0), (double)allocated(1), (double)allocated(2),
 		(double)allocated(3), (double)allocated(4), (double)allocated(5));
@@ -123,6 +151,8 @@ ControlAllocationEBRCA::calcualte_bundled_pseudo_inverse(ControlVector &u_in)
 		}
 	}
 	#endif // CA_EBRCA_ENABLE_PBP
+
+	_control_allocation_meta_data_pub.publish(_meta_data);
 }
 
 /**
@@ -201,6 +231,11 @@ ControlAllocationEBRCA::calc_saturated_agent_id(int8_t &sat_idx, PseudoForceVect
 			// check the minimum violation
 			const float t_min0 = (tx < ty) ? tx : ty;
 			const float t_min = (tz < t_min0) ? tz : t_min0;
+
+			_meta_data.t_x[_idx(i)] = _f(i*3 + 0);
+			_meta_data.t_y[_idx(i)] = _f(i*3 + 1);
+			_meta_data.t_z[_idx(i)] = _f(i*3 + 2);
+			_meta_data.t_min[_idx(i)] = t_min;
 
 			#ifdef CA_EBRCA_DEBUGGER
 			printf("intersections: %f, %f, %f, %f\n", (double)tx, (double)ty, (double)tz, (double)t_min);
