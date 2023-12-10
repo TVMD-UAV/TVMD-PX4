@@ -37,4 +37,6 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		pfa_pos_control.cpp
+	DEPENDS
+		Takeoff
 	)

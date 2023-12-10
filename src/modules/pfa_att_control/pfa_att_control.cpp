@@ -88,117 +88,72 @@ void PFAAttitudeControl::parameters_update(bool force)
 	}
 }
 
-void PFAAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u,
-		float thrust_x, float thrust_y, float thrust_z)
+/**
+ * Ensure the setpoints are valid and then publish them to the
+ * corresponding topic.
+ */
+void PFAAttitudeControl::constrain_actuator_commands(
+	const Vector3f & torques, const Vector3f & thrusts)
 {
-	if (PX4_ISFINITE(roll_u)) {
-		roll_u = math::constrain(roll_u, -1.0f, 1.0f);
-		_vehicle_torque_setpoint.xyz[0] = roll_u;
+	const Vector3f constrained_torques = matrix::constrain(torques, -1.0f, 1.0f);
+	const Vector3f constrained_thrusts = matrix::constrain(thrusts, -1.0f, 1.0f);
+	constrained_torques.copyTo(_vehicle_torque_setpoint.xyz);
+	constrained_thrusts.copyTo(_vehicle_thrust_setpoint.xyz);
 
-	} else {
-		_vehicle_torque_setpoint.xyz[0] = 0.0f;
-	}
+	_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+	_vehicle_thrust_setpoint.timestamp_sample = 0.f;
+	_vehicle_thrust_setpoint_pub.publish(_vehicle_thrust_setpoint);
 
-	if (PX4_ISFINITE(pitch_u)) {
-		pitch_u = math::constrain(pitch_u, -1.0f, 1.0f);
-		_vehicle_torque_setpoint.xyz[1] = pitch_u;
-
-	} else {
-		_vehicle_torque_setpoint.xyz[1] = 0.0f;
-	}
-
-	if (PX4_ISFINITE(yaw_u)) {
-		yaw_u = math::constrain(yaw_u, -1.0f, 1.0f);
-		_vehicle_torque_setpoint.xyz[2] = yaw_u;
-
-	} else {
-		_vehicle_torque_setpoint.xyz[2] = 0.0f;
-	}
-
-	if (PX4_ISFINITE(thrust_x)) {
-		thrust_x = math::constrain(thrust_x, -1.0f, 1.0f);
-		_vehicle_thrust_setpoint.xyz[0] = thrust_x;
-
-	} else {
-		_vehicle_thrust_setpoint.xyz[0] = 0.0f;
-	}
+	_vehicle_torque_setpoint.timestamp = hrt_absolute_time();
+	_vehicle_torque_setpoint.timestamp_sample = 0.f;
+	_vehicle_torque_setpoint_pub.publish(_vehicle_torque_setpoint);
 }
 
+
+/** Partially Fully Actuated Geometric Controller
+ */
 void PFAAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude,
 		const vehicle_attitude_setpoint_s &attitude_setpoint, const vehicle_angular_velocity_s &angular_velocity,
 		const vehicle_rates_setpoint_s &rates_setpoint)
 {
-	/** Geometric Controller
-	 *
-	 * based on
-	 * D. Mellinger, V. Kumar, "Minimum Snap Trajectory Generation and Control for Quadrotors", IEEE ICRA 2011, pp. 2520-2525.
-	 * D. A. Duecker, A. Hackbarth, T. Johannink, E. Kreuzer, and E. Solowjow, “Micro Underwater Vehicle Hydrobatics: A SubmergedFuruta Pendulum,” IEEE ICRA 2018, pp. 7498–7503.
-	 */
 	Eulerf euler_angles(matrix::Quatf(attitude.q));
 
-	float roll_u;
-	float pitch_u;
-	float yaw_u;
-	float thrust_x;
-	float thrust_y;
-	float thrust_z;
+	// Retrieving state variables
+	const Quatf q_att(attitude.q);
+	const Matrix3f rot_att =  matrix::Dcm<float>(q_att);
+	const Vector3f omega = _checkAllFinite(Vector3f(angular_velocity.xyz));
 
-	float roll_body = attitude_setpoint.roll_body;
-	float pitch_body = attitude_setpoint.pitch_body;
-	float yaw_body = attitude_setpoint.yaw_body;
+	// Retrieving setpoints
+	// const Vector3f euler_offset = Vector3f(-0.3f, 0.3f, 0.0f);
+	const Vector3f euler_offset = Vector3f(0.0f, 0.0f, 0.0f);
+	const Vector3f att_euler_des = _checkAllFinite(Vector3f(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, attitude_setpoint.yaw_body)) + euler_offset;
+	const Dcmf rot_des = Eulerf(att_euler_des);
 
-	float roll_rate_desired = rates_setpoint.roll;
-	float pitch_rate_desired = rates_setpoint.pitch;
-	float yaw_rate_desired = rates_setpoint.yaw;
+	const Vector3f omega_offset = Vector3f(-0.1f, 0.1f, -2.5f);
+	// const Vector3f omega_offset = Vector3f(0.0f, 0.0f, 0.0f);
+	const Vector3f omega_des = _checkAllFinite(Vector3f(rates_setpoint.roll, rates_setpoint.pitch, rates_setpoint.yaw)) + omega_offset;
 
-	/* get attitude setpoint rotational matrix */
-	Dcmf rot_des = Eulerf(roll_body, pitch_body, yaw_body);
-
-	/* get current rotation matrix from control state quaternions */
-	Quatf q_att(attitude.q);
-	Matrix3f rot_att =  matrix::Dcm<float>(q_att);
-
-	Vector3f e_R_vec;
-	Vector3f torques;
-
-	/* Compute matrix: attitude error */
-	Matrix3f e_R = (rot_des.transpose() * rot_att - rot_att.transpose() * rot_des) * 0.5;
-
-	/* vee-map the error to get a vector instead of matrix e_R */
-	e_R_vec(0) = e_R(2, 1);  /**< Roll  */
-	e_R_vec(1) = e_R(0, 2);  /**< Pitch */
-	e_R_vec(2) = e_R(1, 0);  /**< Yaw   */
-
-	Vector3f omega{angular_velocity.xyz};
-	omega(0) -= roll_rate_desired;
-	omega(1) -= pitch_rate_desired;
-	omega(2) -= yaw_rate_desired;
-
-	/**< P-Control */
-	torques(0) = - e_R_vec(0) * _param_roll_p.get();	/**< Roll  */
-	torques(1) = - e_R_vec(1) * _param_pitch_p.get();	/**< Pitch */
-	torques(2) = - e_R_vec(2) * _param_yaw_p.get();		/**< Yaw   */
-
-	/**< PD-Control */
-	torques(0) = torques(0) - omega(0) * _param_roll_d.get();  /**< Roll  */
-	torques(1) = torques(1) - omega(1) * _param_pitch_d.get(); /**< Pitch */
-	torques(2) = torques(2) - omega(2) * _param_yaw_d.get();   /**< Yaw   */
-
-	roll_u = torques(0);
-	pitch_u = torques(1);
-	yaw_u = torques(2);
-
-	// take thrust as
-	thrust_x = attitude_setpoint.thrust_body[0];
-	thrust_y = attitude_setpoint.thrust_body[1];
-	thrust_z = attitude_setpoint.thrust_body[2];
-
-	// TODO: thrust and torque remapping, which should be correspond to the one
-	// in control allocation module
+	// Retrieve gains
+	const Vector3f Kr = Vector3f(_param_roll_p.get(), _param_pitch_p.get(), _param_yaw_p.get());
+	const Vector3f Kw = Vector3f(_param_roll_d.get(), _param_pitch_d.get(), _param_yaw_d.get());
 
 
-	constrain_actuator_commands(roll_u, pitch_u, yaw_u, thrust_x, thrust_y, thrust_z);
-	/* Geometric Controller END*/
+	// Compute attitude error
+	// e_R = 0.5 * (R_d.T * R - R.T * R_d)
+	const Dcmf e_R = 0.5f * (rot_des.transpose() * rot_att - rot_att.transpose() * rot_des);
+	const Vector3f e_R_vec = e_R.vee();
+	const Vector3f err_omega = omega - omega_des;
+
+
+	// Compute torque control
+	// max torque should be set to the same value as the one in control allocation
+	// TODO: add inertia matrix
+	const Vector3f torques = - (Kr.emult(e_R_vec) + Kw.emult(err_omega)) / _param_vehicle_max_torque.get();
+	const Vector3f thrusts = Vector3f(attitude_setpoint.thrust_body);
+
+	const Vector3f torque_offset = Vector3f(0.0f, 0.0f, 0.0f);
+
+	constrain_actuator_commands(torques + torque_offset, thrusts);
 }
 
 void PFAAttitudeControl::Run()
@@ -224,61 +179,14 @@ void PFAAttitudeControl::Run()
 		vehicle_angular_velocity_s angular_velocity {};
 		_angular_velocity_sub.copy(&angular_velocity);
 
-		/* Run geometric attitude controllers if NOT manual mode*/
-		if (!_vcontrol_mode.flag_control_manual_enabled
-		    && _vcontrol_mode.flag_control_attitude_enabled
+		if (_vcontrol_mode.flag_control_attitude_enabled
 		    && _vcontrol_mode.flag_control_rates_enabled) {
-
-			int input_mode = _param_input_mode.get();
 
 			_vehicle_attitude_setpoint_sub.update(&_attitude_setpoint);
 			_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
 
-			if (input_mode == 1) { // process manual data
-				_attitude_setpoint.roll_body = _param_direct_roll.get();
-				_attitude_setpoint.pitch_body = _param_direct_pitch.get();
-				_attitude_setpoint.yaw_body = _param_direct_yaw.get();
-				_attitude_setpoint.thrust_body[0] = _param_direct_thrust.get();
-				_attitude_setpoint.thrust_body[1] = 0.f;
-				_attitude_setpoint.thrust_body[2] = 0.f;
-			}
-
-			/* Geometric Control*/
-			int skip_controller = _param_skip_ctrl.get();
-
-			if (skip_controller) {
-				constrain_actuator_commands(_rates_setpoint.roll, _rates_setpoint.pitch, _rates_setpoint.yaw,
-							    _rates_setpoint.thrust_body[0], _rates_setpoint.thrust_body[1], _rates_setpoint.thrust_body[2]);
-
-			} else {
-				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
-			}
+			control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
 		}
-	}
-
-	/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
-	if (_manual_control_setpoint_sub.update(&_manual_control_setpoint)) {
-		// This should be copied even if not in manual mode. Otherwise, the poll(...) call will keep
-		// returning immediately and this loop will eat up resources.
-		if (_vcontrol_mode.flag_control_manual_enabled && !_vcontrol_mode.flag_control_rates_enabled) {
-			/* manual/direct control */
-			constrain_actuator_commands(_manual_control_setpoint.roll, -_manual_control_setpoint.pitch,
-						    _manual_control_setpoint.yaw,
-						    _manual_control_setpoint.throttle, 0.f, 0.f);
-		}
-	}
-
-	/* Only publish if any of the proper modes are enabled */
-	if (_vcontrol_mode.flag_control_manual_enabled ||
-	    _vcontrol_mode.flag_control_attitude_enabled) {
-
-		_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
-		_vehicle_thrust_setpoint.timestamp_sample = 0.f;
-		_vehicle_thrust_setpoint_pub.publish(_vehicle_thrust_setpoint);
-
-		_vehicle_torque_setpoint.timestamp = hrt_absolute_time();
-		_vehicle_torque_setpoint.timestamp_sample = 0.f;
-		_vehicle_torque_setpoint_pub.publish(_vehicle_torque_setpoint);
 	}
 
 	perf_end(_loop_perf);
@@ -329,8 +237,7 @@ Publishes `vehicle_thrust_setpont` and `vehicle_torque_setpoint` messages at a c
 ### Implementation
 Currently, this implementation supports only a few modes:
 
- * Full manual: Roll, pitch, yaw, and throttle controls are passed directly through to the actuators
- * Auto mission: The pfa runs missions
+ * Position mode
 
 ### Examples
 CLI usage example:

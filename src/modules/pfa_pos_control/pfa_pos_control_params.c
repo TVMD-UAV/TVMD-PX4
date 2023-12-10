@@ -51,44 +51,52 @@
  *
  * @group PFA Position Control
  */
-PARAM_DEFINE_FLOAT(PFA_GAIN_X_P, 1.0f);
+PARAM_DEFINE_FLOAT(PFA_GAIN_X_P, 0.05f);
 /**
  * Gain of P controller Y
  *
  * @group PFA Position Control
  */
-PARAM_DEFINE_FLOAT(PFA_GAIN_Y_P, 1.0f);
+PARAM_DEFINE_FLOAT(PFA_GAIN_Y_P, 0.05f);
 /**
  * Gain of P controller Z
  *
  * @group PFA Position Control
  */
-PARAM_DEFINE_FLOAT(PFA_GAIN_Z_P, 1.0f);
+PARAM_DEFINE_FLOAT(PFA_GAIN_Z_P, 0.50f);
 
 /**
  * Gain of D controller X
  *
  * @group PFA Position Control
  */
-PARAM_DEFINE_FLOAT(PFA_GAIN_X_D, 0.2f);
+PARAM_DEFINE_FLOAT(PFA_GAIN_X_D, 0.05f);
+
 /**
  * Gain of D controller Y
  *
  * @group PFA Position Control
  */
-PARAM_DEFINE_FLOAT(PFA_GAIN_Y_D, 0.2f);
+PARAM_DEFINE_FLOAT(PFA_GAIN_Y_D, 0.05f);
+
 /**
  * Gain of D controller Z
  *
  * @group PFA Position Control
  */
-PARAM_DEFINE_FLOAT(PFA_GAIN_Z_D, 0.2f);
+PARAM_DEFINE_FLOAT(PFA_GAIN_Z_D, 2.00f);
 
 /**
- * Stabilization mode(1) or Position Control(0)
+ * Mass of the vehicle in Kg
  *
- * @value 0 Position Control
- * @value 1 Stabilization Mode
  * @group PFA Position Control
  */
-PARAM_DEFINE_INT32(PFA_STAB_MODE, 1);
+PARAM_DEFINE_FLOAT(PFA_VEH_MASS, 5.5179f);
+
+/**
+ * Maximum thrust of the vechicle in Newton
+ *
+ * @group PFA Position Control
+ */
+PARAM_DEFINE_FLOAT(PFA_MAX_THR, 58.8f);
+

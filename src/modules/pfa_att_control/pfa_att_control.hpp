@@ -106,10 +106,10 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};	/**< vehicle attitude setpoint */
-	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)}; /**< vehicle bodyrates setpoint subscriber */
-	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};	/**< vehicle angular velocity subscription */
+	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)}; 	/**< vehicle bodyrates setpoint subscriber */
+	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};		/**< vehicle angular velocity subscription */
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	/**< notification of manual control updates */
-	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle status subscription */
+	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};			/**< vehicle status subscription */
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
 
@@ -129,27 +129,19 @@ private:
 		(ParamFloat<px4::params::PFA_PITCH_D>) _param_pitch_d,
 		(ParamFloat<px4::params::PFA_YAW_P>) _param_yaw_p,
 		(ParamFloat<px4::params::PFA_YAW_D>) _param_yaw_d,
-		// control/input modes
-		(ParamInt<px4::params::PFA_INPUT_MODE>) _param_input_mode,
-		(ParamInt<px4::params::PFA_SKIP_CTRL>) _param_skip_ctrl,
-		// direct access to inputs
-		(ParamFloat<px4::params::PFA_DIRCT_ROLL>) _param_direct_roll,
-		(ParamFloat<px4::params::PFA_DIRCT_PITCH>) _param_direct_pitch,
-		(ParamFloat<px4::params::PFA_DIRCT_YAW>) _param_direct_yaw,
-		(ParamFloat<px4::params::PFA_DIRCT_THRUST>) _param_direct_thrust
+		(ParamFloat<px4::params::PFA_MAX_TOR>) _param_vehicle_max_torque
 	)
 
 	void Run() override;
-	/**
-	 * Update our local parameter cache.
-	 */
+
 	void parameters_update(bool force = false);
 
-	/**
-	 * Control Attitude
-	 */
 	void control_attitude_geo(const vehicle_attitude_s &attitude, const vehicle_attitude_setpoint_s &attitude_setpoint,
 				  const vehicle_angular_velocity_s &angular_velocity, const vehicle_rates_setpoint_s &rates_setpoint);
-	void constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u,
-					 float thrust_x, float thrust_y, float thrust_z);
+	void constrain_actuator_commands(const Vector3f & torques, const Vector3f & thrusts);
+
+	static inline const Vector3f _checkAllFinite(const Vector3f & vec) {
+		if (!vec.isAllFinite()) return Vector3f(0.0f, 0.0f, 0.0f);
+		else 			return vec;
+	}
 };

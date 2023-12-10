@@ -59,6 +59,7 @@ PFAPOSControl::PFAPOSControl():
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
+	_takeoff_status_pub.advertise();
 }
 
 PFAPOSControl::~PFAPOSControl()
@@ -86,65 +87,134 @@ void PFAPOSControl::parameters_update(bool force)
 
 		// update parameters from storage
 		updateParams();
+
+		_takeoff.setSpoolupTime(_param_com_spoolup_time.get());
+		_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
+		// The original definition: initial_v = -g / velociry_p_gain,
+		// Here, we let the initial thrust be 0.1f
+		_takeoff.generateInitialRampValue(10.0f * CONSTANTS_ONE_G);
 	}
 }
 
-void PFAPOSControl::publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
-		const float roll_des, const float pitch_des, const float yaw_des)
+/**
+ * Record the time when position control is enabled, which is used to
+ * schedule the takeoff ramp.
+ */
+void PFAPOSControl::_update_position_control_enable_time()
+{
+	if (_vcontrol_mode_sub.updated()) {
+		const bool previous_vcontrol_mode_enabled = _vcontrol_mode.flag_control_position_enabled;
+		if (_vcontrol_mode_sub.update(&_vcontrol_mode)) {
+			if (!previous_vcontrol_mode_enabled && _vcontrol_mode.flag_control_position_enabled) {
+				_time_position_control_enabled = _vcontrol_mode.timestamp;
+			}
+		}
+	}
+}
+
+
+/**
+ * Publish attitude setpoint.
+ */
+void PFAPOSControl::publish_attitude_setpoint(
+	const Vector3f &thrust_sp, const Vector3f &euler_attitude_des)
 {
 	//watch if inputs are not to high
 	vehicle_attitude_setpoint_s vehicle_attitude_setpoint = {};
 	vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
 
-	vehicle_attitude_setpoint.roll_body = roll_des;
-	vehicle_attitude_setpoint.pitch_body = pitch_des;
-	vehicle_attitude_setpoint.yaw_body = yaw_des;
+	vehicle_attitude_setpoint.roll_body = euler_attitude_des(0);
+	vehicle_attitude_setpoint.pitch_body = euler_attitude_des(1);
+	vehicle_attitude_setpoint.yaw_body = euler_attitude_des(2);
 
-	vehicle_attitude_setpoint.thrust_body[0] = thrust_x;
-	vehicle_attitude_setpoint.thrust_body[1] = thrust_y;
-	vehicle_attitude_setpoint.thrust_body[2] = thrust_z;
-
-
+	const Vector3f output_thrust = _checkAllFinite(thrust_sp);
+	output_thrust.copyTo(vehicle_attitude_setpoint.thrust_body);
 	_att_sp_pub.publish(vehicle_attitude_setpoint);
 }
 
-void PFAPOSControl::pose_controller_6dof(const Vector3f &pos_des,
-		const float roll_des, const float pitch_des, const float yaw_des,
-		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+
+/**
+ * Calculate the desired thrust from the given trajectory setpoint.
+ * If any entry of the setpoint is NaN, the corresponding control input
+ * will be neglected.
+ */
+void PFAPOSControl::pose_controller_6dof(
+		const trajectory_setpoint_s &traj_des, const Vector3f &euler_attitude_des,
+		const vehicle_attitude_s &vehicle_attitude, const vehicle_local_position_s &vlocal_pos)
 {
-	//get current rotation of vehicle
-	Quatf q_att(vehicle_attitude.q);
+	// Retrieve gains
+	const Vector3f Kp = Vector3f(_param_pose_gain_x.get(), _param_pose_gain_y.get(), _param_pose_gain_z.get());
+	const Vector3f Kv = Vector3f(_param_pose_gain_d_x.get(), _param_pose_gain_d_y.get(), _param_pose_gain_d_z.get());
 
-	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get()
-					     * vlocal_pos.vx,
-					     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
-					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
+	// Retrieve current states
+	const Quatf q_att(vehicle_attitude.q);
+	const Vector3f pos = Vector3f(vlocal_pos.x, vlocal_pos.y, vlocal_pos.z);
+	const Vector3f vel = Vector3f(vlocal_pos.vx, vlocal_pos.vy, vlocal_pos.vz);
 
-	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
+	// Calculate constrained velocity setpoint
+	// TODO: the position setpoint should be constrained as the velocity setpoint
+	// is saturated.
+	const Vector3f vel_des = _checkAllFinite(Vector3f(traj_des.velocity));
+	const Vector3f limited_vel_des = matrix::constrain(vel_des,
+		Vector3f(-_speed_xy_max, -_speed_xy_max, _speed_up_max),
+		Vector3f(_speed_xy_max, _speed_xy_max, _speed_dn_max));
 
-	publish_attitude_setpoint(rotated_input(0),
-				  rotated_input(1),
-				  rotated_input(2),
-				  roll_des, pitch_des, yaw_des);
+	// Calculate errors
+	const Vector3f err_pos = _checkAllFinite(Vector3f(traj_des.position) - pos);
+	const Vector3f err_vel = _checkAllFinite(limited_vel_des - vel);
+	const Vector3f err_acc = _checkAllFinite(Vector3f(traj_des.acceleration));
 
+	// NED frame (north east down)
+	const Vector3f resist_gravity = Vector3f(0, 0, -CONSTANTS_ONE_G);
+
+	// Calcuate the control input
+	const Vector3f control_acc = err_acc + resist_gravity + Kv.emult(err_vel) + Kp.emult(err_pos);
+	const Vector3f control_force = control_acc * _param_vehicle_mass.get();
+	const Vector3f control_normalized_force = control_force / _param_vehicle_max_thrust.get();
+
+	// Limit thrust vector and check for saturation
+	// NED frame (north east down)
+	const Vector3f limited_thrust_des = matrix::constrain(control_normalized_force,
+		Vector3f(-_thrust_xy_max, -_thrust_xy_max, _thrust_up_max),
+		Vector3f(_thrust_xy_max, _thrust_xy_max, _thrust_min));
+
+	// Rotate the thrust from global to body frame
+	const Vector3f rotated_input = q_att.rotateVectorInverse(limited_thrust_des);
+
+	publish_attitude_setpoint(rotated_input, euler_attitude_des);
+
+	vehicle_local_position_setpoint_s local_pos_sp{};
+	local_pos_sp.timestamp = hrt_absolute_time();
+	local_pos_sp.vx = limited_vel_des(0);
+	local_pos_sp.vy = limited_vel_des(1);
+	local_pos_sp.vz = limited_vel_des(2);
+	control_acc.copyTo(local_pos_sp.acceleration);
+	control_normalized_force.copyTo(local_pos_sp.thrust);
+
+	_local_pos_sp_pub.publish(local_pos_sp);
 }
 
-void PFAPOSControl::stabilization_controller_6dof(const Vector3f &pos_des,
-		const float roll_des, const float pitch_des, const float yaw_des,
-		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+
+/**
+ * Calculate the desired thrust that hovers the vehicle at the current
+ * position.
+ */
+void PFAPOSControl::stabilization_controller_6dof(
+		const trajectory_setpoint_s &traj_des, const Vector3f &euler_attitude_des,
+		const vehicle_attitude_s &vehicle_attitude, const vehicle_local_position_s &vlocal_pos)
 {
-	//get current rotation of vehicle
-	Quatf q_att(vehicle_attitude.q);
+	trajectory_setpoint_s stab_traj_des = traj_des;
+	stab_traj_des.position[0] = vlocal_pos.x;
+	stab_traj_des.position[1] = vlocal_pos.y;
+	stab_traj_des.position[2] = _takeoff_hover_height;
+	stab_traj_des.velocity[0] = 0;
+	stab_traj_des.velocity[1] = 0;
+	stab_traj_des.velocity[2] = 0;
+	stab_traj_des.acceleration[0] = 0;
+	stab_traj_des.acceleration[1] = 0;
+	stab_traj_des.acceleration[2] = 0;
 
-	Vector3f p_control_output = Vector3f(0,
-					     0,
-					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z));
-	//potential d controller missing
-	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
-
-	publish_attitude_setpoint(rotated_input(0) + pos_des(0), rotated_input(1) + pos_des(1), rotated_input(2),
-				  roll_des, pitch_des, yaw_des);
-
+	pose_controller_6dof(stab_traj_des, euler_attitude_des, vehicle_attitude, vlocal_pos);
 }
 
 void PFAPOSControl::Run()
@@ -169,29 +239,64 @@ void PFAPOSControl::Run()
 
 	/* only run controller if local_pos changed */
 	if (_vehicle_local_position_sub.update(&vlocal_pos)) {
+		// calculate dt
+		const float dt =
+			math::constrain(((vlocal_pos.timestamp_sample - _time_stamp_last_loop) * 1e-6f), 0.002f, 0.04f);
+		_time_stamp_last_loop = vlocal_pos.timestamp_sample;
 
-		/* Run geometric attitude controllers if NOT manual mode*/
-		if (!_vcontrol_mode.flag_control_manual_enabled
-		    && _vcontrol_mode.flag_control_attitude_enabled
-		    && _vcontrol_mode.flag_control_rates_enabled) {
+		_vehicle_attitude_sub.update(&_vehicle_attitude);
+		_trajectory_setpoint_sub.update(&_trajectory_setpoint);
 
-			_vehicle_attitude_sub.update(&_vehicle_attitude);//get current vehicle attitude
-			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+		_update_position_control_enable_time();
 
-			float roll_des = 0;
-			float pitch_des = 0;
-			float yaw_des = _trajectory_setpoint.yaw;
+		if (_vcontrol_mode.flag_control_position_enabled
+			&& (_trajectory_setpoint.timestamp >= _time_position_control_enabled)) {
 
-			//stabilization controller(keep pos and hold depth + angle) vs position controller(global + yaw)
-			if (_param_stabilization.get() == 0) {
-				pose_controller_6dof(Vector3f(_trajectory_setpoint.position),
-						     roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+			_vehicle_constraints_sub.update(&_vehicle_constraints);
 
-			} else {
-				stabilization_controller_6dof(Vector3f(_trajectory_setpoint.position),
-							      roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+			// TODO: the land process is not handled yet
+			// Update takeoff state machine
+			_takeoff.updateTakeoffState(
+				_vcontrol_mode.flag_armed, false, _vehicle_constraints.want_takeoff,
+				_thrust_max, false, vlocal_pos.timestamp_sample);
+
+			// Return the maximum thrust according to the takeoff state machine
+			_thrust_up_max = _takeoff.updateRamp(dt, _thrust_max);
+			// const float speed_down = PX4_ISFINITE(_vehicle_constraints.speed_down) ? _vehicle_constraints.speed_down :
+
+			const bool flying                    = (_takeoff.getTakeoffState() >= TakeoffState::rampup);
+			const bool ramping_up 							 = (_takeoff.getTakeoffState() == TakeoffState::rampup);
+			// const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
+
+			// The flying state including the rampup phase
+			if (flying) {
+				const Vector3f attitude_des = Vector3f(0.0f, 0.0f, _trajectory_setpoint.yaw);
+
+				if (ramping_up) {
+					// Reset position setpoint to current xy-position at the hovering height
+					stabilization_controller_6dof(
+						_trajectory_setpoint, attitude_des, _vehicle_attitude, vlocal_pos);
+				} else {
+					pose_controller_6dof(
+						_trajectory_setpoint, attitude_des, _vehicle_attitude, vlocal_pos);
+				}
 			}
+		} else {
+			// An update is necessary here because otherwise the takeoff state
+			// doesn't get skipped with non-altitude-controlled modes
+			_takeoff.updateTakeoffState(_vcontrol_mode.flag_armed, false, false,
+				_thrust_max, true, vlocal_pos.timestamp_sample);
 		}
+	}
+
+	// Publish takeoff status
+	const uint8_t takeoff_state = static_cast<uint8_t>(_takeoff.getTakeoffState());
+
+	if (takeoff_state != _takeoff_status_pub.get().takeoff_state) {
+		_takeoff_status_pub.get().takeoff_state = takeoff_state;
+		// _takeoff_status_pub.get().tilt_limit = _tilt_limit_slew_rate.getState();
+		_takeoff_status_pub.get().timestamp = hrt_absolute_time();
+		_takeoff_status_pub.update();
 	}
 
 	/* Only publish if any of the proper modes are enabled */
@@ -244,8 +349,7 @@ Controls the attitude of an partially fully actuated (PFA).
 Publishes `attitude_setpoint` messages.
 ### Implementation
 Currently, this implementation supports only a few modes:
- * Full manual: Roll, pitch, yaw, and throttle controls are passed directly through to the actuators
- * Auto mission: The pfa runs missions
+ * Position mode with takeoff 
 ### Examples
 CLI usage example:
 $ pfa_pos_control start

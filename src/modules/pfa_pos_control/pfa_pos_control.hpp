@@ -62,12 +62,17 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_constraints.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/uORB.h>
+
+// #include "MulticopterPositionControl.hpp"
+#include "mc_pos_control/Takeoff/Takeoff.hpp"
 
 using matrix::Eulerf;
 using matrix::Quatf;
@@ -95,8 +100,38 @@ public:
 
 	bool init();
 
+protected:
+	/** state machine and ramp to bring the vehicle off the
+	 * ground without jumps
+	 */
+	TakeoffHandling _takeoff;
+
+	hrt_abstime _time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
+	hrt_abstime _time_position_control_enabled{0};
+	void _update_position_control_enable_time();
+
+	float _speed_up_max{-5.0f};
+	float _speed_dn_max{2.0f};
+	float _speed_xy_max{1.0f};
+
+	const float _thrust_max{-1.0f};
+	const float _thrust_min{-0.01f};
+	const float _takeoff_hover_height{-2.0f};
+	float _thrust_xy_max{0.3f};
+	float _thrust_up_max{0.0f};
+
+	uORB::Subscription _vehicle_constraints_sub{ORB_ID(vehicle_constraints)};
+	vehicle_constraints_s _vehicle_constraints {
+		.timestamp = 0,
+		.speed_up = NAN,
+		.speed_down = NAN,
+		.want_takeoff = false,
+	};
+
 private:
+	uORB::PublicationData<takeoff_status_s>              _takeoff_status_pub{ORB_ID(takeoff_status)};
 	uORB::Publication<vehicle_attitude_setpoint_s> _att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -120,10 +155,20 @@ private:
 		(ParamFloat<px4::params::PFA_GAIN_Y_D>) _param_pose_gain_d_y,
 		(ParamFloat<px4::params::PFA_GAIN_Z_D>) _param_pose_gain_d_z,
 
-		(ParamInt<px4::params::PFA_INPUT_MODE>) _param_input_mode,
-		(ParamInt<px4::params::PFA_STAB_MODE>) _param_stabilization,
-		(ParamInt<px4::params::PFA_SKIP_CTRL>) _param_skip_ctrl
+		(ParamFloat<px4::params::PFA_VEH_MASS>) _param_vehicle_mass,
+		(ParamFloat<px4::params::PFA_MAX_THR>)  _param_vehicle_max_thrust,
+
+		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time, /**< time to let motors spool up after arming */
+		(ParamFloat<px4::params::MPC_TKO_RAMP_T>)   _param_mpc_tko_ramp_t,   /**< time constant for smooth takeoff ramp */
+		(ParamFloat<px4::params::MPC_Z_VEL_P_ACC>)  _param_mpc_z_vel_p_acc,
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn
 	)
+
+	// DEFINE_PARAMETERS_CUSTOM_PARENT(MulticopterPositionControl,
+	// DEFINE_PARAMETERS(
+	// )
+
 
 	void Run() override;
 	/**
@@ -134,12 +179,21 @@ private:
 	/**
 	 * Control Attitude
 	 */
-	void publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
-				       const float roll_des, const float pitch_des, const float yaw_des);
-	void pose_controller_6dof(const Vector3f &pos_des,
-				  const float roll_des, const float pitch_des, const float yaw_des,
-				  vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
-	void stabilization_controller_6dof(const Vector3f &pos_des,
-					   const float roll_des, const float pitch_des, const float yaw_des,
-					   vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
+	void publish_attitude_setpoint(const Vector3f &thrust_sp,
+			const Vector3f &euler_attitude_des);
+
+	void pose_controller_6dof(const trajectory_setpoint_s &traj_des,
+			const Vector3f &euler_attitude_des,
+			const vehicle_attitude_s &vehicle_attitude,
+			const vehicle_local_position_s &vlocal_pos);
+
+	void stabilization_controller_6dof(const trajectory_setpoint_s &traj_des,
+			const Vector3f &euler_attitude_des,
+			const vehicle_attitude_s &vehicle_attitude,
+			const vehicle_local_position_s &vlocal_pos);
+
+	static inline const Vector3f _checkAllFinite(const Vector3f & vec) {
+		if (!vec.isAllFinite()) return Vector3f(0.0f, 0.0f, 0.0f);
+		else 			return vec;
+	}
 };

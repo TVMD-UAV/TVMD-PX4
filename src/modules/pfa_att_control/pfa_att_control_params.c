@@ -54,7 +54,7 @@
  * @group UUV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(PFA_ROLL_P, 4.0f);
+PARAM_DEFINE_FLOAT(PFA_ROLL_P, 0.70f);
 
 /**
  * Roll differential gain
@@ -62,7 +62,7 @@ PARAM_DEFINE_FLOAT(PFA_ROLL_P, 4.0f);
  * @group UUV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(PFA_ROLL_D, 1.5f);
+PARAM_DEFINE_FLOAT(PFA_ROLL_D, 1.20f);
 
 
 // Pitch gains
@@ -72,7 +72,7 @@ PARAM_DEFINE_FLOAT(PFA_ROLL_D, 1.5f);
  * @group UUV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(PFA_PITCH_P, 4.0f);
+PARAM_DEFINE_FLOAT(PFA_PITCH_P, 0.70f);
 
 /**
  * Pitch differential gain
@@ -80,7 +80,7 @@ PARAM_DEFINE_FLOAT(PFA_PITCH_P, 4.0f);
  * @group UUV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(PFA_PITCH_D, 2.0f);
+PARAM_DEFINE_FLOAT(PFA_PITCH_D, 1.20f);
 
 
 // Yaw gains
@@ -90,7 +90,7 @@ PARAM_DEFINE_FLOAT(PFA_PITCH_D, 2.0f);
  * @group UUV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(PFA_YAW_P, 4.0f);
+PARAM_DEFINE_FLOAT(PFA_YAW_P, 0.30f);
 
 /**
  * Yaw differential gain
@@ -98,51 +98,11 @@ PARAM_DEFINE_FLOAT(PFA_YAW_P, 4.0f);
  * @group UUV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(PFA_YAW_D, 2.0f);
-
-
-// Input Modes
-/**
- * Select Input Mode
- *
- * @value 0 use Attitude Setpoints
- * @value 1 Direct Feedthrough
- * @group UUV Attitude Control
- */
-PARAM_DEFINE_INT32(PFA_INPUT_MODE, 0);
+PARAM_DEFINE_FLOAT(PFA_YAW_D, 1.00f);
 
 /**
- * Skip the controller
+ * Maximum torque of the vechicle in Nm
  *
- * @value 0 use the module's controller
- * @value 1 skip the controller and feedthrough the setpoints
+ * @group PFA Attitude Control
  */
-PARAM_DEFINE_INT32(PFA_SKIP_CTRL, 0);
-
-/**
- * Direct roll input
- *
- * @group UUV Attitude Control
- */
-PARAM_DEFINE_FLOAT(PFA_DIRCT_ROLL, 0.0f);
-
-/**
- * Direct pitch input
- *
- * @group UUV Attitude Control
- */
-PARAM_DEFINE_FLOAT(PFA_DIRCT_PITCH, 0.0f);
-
-/**
- * Direct yaw input
- *
- * @group UUV Attitude Control
- */
-PARAM_DEFINE_FLOAT(PFA_DIRCT_YAW, 0.0f);
-
-/**
- * Direct thrust input
- *
- * @group UUV Attitude Control
- */
-PARAM_DEFINE_FLOAT(PFA_DIRCT_THRUST, 0.0f);
+PARAM_DEFINE_FLOAT(PFA_MAX_TOR, 15.0f);

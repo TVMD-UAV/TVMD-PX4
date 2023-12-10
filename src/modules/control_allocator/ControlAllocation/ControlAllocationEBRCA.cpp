@@ -253,7 +253,7 @@ ControlAllocationEBRCA::calc_saturated_agent_id(int8_t &sat_idx, PseudoForceVect
 		}
 	}
 
-	if (smallest_increment == INFINITY)
+	if (smallest_increment >= INFINITY)
 		smallest_increment = 1;
 
 	return smallest_increment;
