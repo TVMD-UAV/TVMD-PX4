@@ -58,6 +58,24 @@ PFAAttitudeControl::PFAAttitudeControl():
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
+	_param_handles.num_agents = param_find("CA_MD_COUNT");
+
+	for (int i = 0; i < NUM_AGENTS_MAX; ++i) {
+		char buffer[17];
+
+		// Positions
+		snprintf(buffer, sizeof(buffer), "CA_MD%u_PX", i);
+		_param_handles.module_geometry[i].pos_x = param_find(buffer);
+
+		snprintf(buffer, sizeof(buffer), "CA_MD%u_PY", i);
+		_param_handles.module_geometry[i].pos_y = param_find(buffer);
+
+		snprintf(buffer, sizeof(buffer), "CA_MD%u_PZ", i);
+		_param_handles.module_geometry[i].pos_z = param_find(buffer);
+
+		snprintf(buffer, sizeof(buffer), "CA_MD%u_AZ", i);
+		_param_handles.module_geometry[i].ax_psi = param_find(buffer);
+	}
 }
 
 PFAAttitudeControl::~PFAAttitudeControl()
@@ -85,6 +103,63 @@ void PFAAttitudeControl::parameters_update(bool force)
 
 		// update parameters from storage
 		updateParams();
+
+		int32_t num_agents = 0;
+		if (param_get(_param_handles.num_agents, &num_agents) == 0) {
+			// _num_agents = math::constrain((uint8_t)num_agents, 3, 4);
+			_num_agents = num_agents;
+			calc_team_inertia(_team_inertia);
+		} else {
+			PX4_ERR("Failed to get param: num_agents");
+		}
+	}
+}
+
+/**
+ * Calculate the inertia matrix of the whole team.
+ */
+void PFAAttitudeControl::calc_team_inertia(Matrix3f &output)
+{
+	const Matrix3f agent_inertia = matrix::diag(
+		Vector3f(_param_vehicle_agent_ixx.get(), _param_vehicle_agent_iyy.get(), _param_vehicle_agent_izz.get()));
+
+	const Matrix3f nav_inertia = matrix::diag(
+		Vector3f(_param_vehicle_nav_ixx.get(), _param_vehicle_nav_iyy.get(), _param_vehicle_nav_izz.get()));
+
+	// agent mass
+	const float agent_mass = _param_vehicle_agent_mass.get();
+
+	output = nav_inertia;
+
+	// Calculate the inertia matrix of the whole team
+
+	for (int i = 0; i < _num_agents; i++) {
+		matrix::Vector3f::Matrix31 d; //
+		if (param_get(_param_handles.module_geometry[i].pos_x, &d(0, 0)) != 0 ||
+				param_get(_param_handles.module_geometry[i].pos_y, &d(1, 0)) != 0 ||
+				param_get(_param_handles.module_geometry[i].pos_z, &d(2, 0)) != 0) {
+				PX4_ERR("Failed to get %d-agent position", i);
+		}
+
+		// Calculate the inertia matrix of the agent according to the parallel axis theorem
+		// I_S = I_R - M [d][d], where d \in R^{3x1} is the position vector between the agent and the CoM of the team
+		//     = I_R + M (||d||^2 * I_3 - d * d^T)
+		Matrix3f E3;
+		E3.identity();
+		const float d_norm_square = (d.transpose() * d)(0, 0);
+		const Matrix3f agent_inertia_parallel =
+			agent_inertia + agent_mass * (
+				d_norm_square * E3 - d * d.transpose());
+
+		output += agent_inertia_parallel;
+	}
+
+	PX4_INFO("Team inertia matrix:");
+	for(int i=0; i<3; i++){
+		for(int j=0; j<3; j++){
+			printf("%7.4f\t", (double)output(i, j));
+		}
+		printf("\n");
 	}
 }
 
@@ -148,7 +223,7 @@ void PFAAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 	// Compute torque control
 	// max torque should be set to the same value as the one in control allocation
 	// TODO: add inertia matrix
-	const Vector3f torques = - (Kr.emult(e_R_vec) + Kw.emult(err_omega)) / _param_vehicle_max_torque.get();
+	const Vector3f torques = - _team_inertia * (Kr.emult(e_R_vec) + Kw.emult(err_omega)) / _param_vehicle_max_torque.get();
 	const Vector3f thrusts = Vector3f(attitude_setpoint.thrust_body);
 
 	const Vector3f torque_offset = Vector3f(0.0f, 0.0f, 0.0f);

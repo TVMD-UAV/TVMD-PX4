@@ -54,7 +54,7 @@
  * @group UUV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(PFA_ROLL_P, 0.70f);
+PARAM_DEFINE_FLOAT(PFA_ROLL_P, 5.0f);
 
 /**
  * Roll differential gain
@@ -62,7 +62,7 @@ PARAM_DEFINE_FLOAT(PFA_ROLL_P, 0.70f);
  * @group UUV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(PFA_ROLL_D, 1.20f);
+PARAM_DEFINE_FLOAT(PFA_ROLL_D, 7.0f);
 
 
 // Pitch gains
@@ -72,7 +72,7 @@ PARAM_DEFINE_FLOAT(PFA_ROLL_D, 1.20f);
  * @group UUV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(PFA_PITCH_P, 0.70f);
+PARAM_DEFINE_FLOAT(PFA_PITCH_P, 5.0f);
 
 /**
  * Pitch differential gain
@@ -80,7 +80,7 @@ PARAM_DEFINE_FLOAT(PFA_PITCH_P, 0.70f);
  * @group UUV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(PFA_PITCH_D, 1.20f);
+PARAM_DEFINE_FLOAT(PFA_PITCH_D, 7.0f);
 
 
 // Yaw gains
@@ -90,7 +90,7 @@ PARAM_DEFINE_FLOAT(PFA_PITCH_D, 1.20f);
  * @group UUV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(PFA_YAW_P, 0.30f);
+PARAM_DEFINE_FLOAT(PFA_YAW_P, 1.0f);
 
 /**
  * Yaw differential gain
@@ -98,7 +98,7 @@ PARAM_DEFINE_FLOAT(PFA_YAW_P, 0.30f);
  * @group UUV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(PFA_YAW_D, 1.00f);
+PARAM_DEFINE_FLOAT(PFA_YAW_D, 1.5f);
 
 /**
  * Maximum torque of the vechicle in Nm
@@ -106,3 +106,52 @@ PARAM_DEFINE_FLOAT(PFA_YAW_D, 1.00f);
  * @group PFA Attitude Control
  */
 PARAM_DEFINE_FLOAT(PFA_MAX_TOR, 15.0f);
+
+/**
+ * Inertia matrix of the vechicle
+ *
+ * @group PFA Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VEH_AGENT_IXX, 0.0170f);
+
+/**
+ * Inertia matrix of the vechicle
+ *
+ * @group PFA Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VEH_AGENT_IYY, 0.0029f);
+
+/**
+ * Inertia matrix of the vechicle
+ *
+ * @group PFA Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VEH_AGENT_IZZ, 0.0178f);
+
+/**
+ * Inertia matrix of the vechicle
+ *
+ * @group PFA Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VEH_NAV_IXX, 0.0121f);
+
+/**
+ * Inertia matrix of the vechicle
+ *
+ * @group PFA Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VEH_NAV_IYY, 0.0184f);
+
+/**
+ * Inertia matrix of the vechicle
+ *
+ * @group PFA Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VEH_NAV_IZZ, 0.0214f);
+
+/**
+ * Mass of a single agent in Kg
+ *
+ * @group PFA Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VEH_AGENT_MASS, 0.5421f);

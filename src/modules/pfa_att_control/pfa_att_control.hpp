@@ -129,7 +129,18 @@ private:
 		(ParamFloat<px4::params::PFA_PITCH_D>) _param_pitch_d,
 		(ParamFloat<px4::params::PFA_YAW_P>) _param_yaw_p,
 		(ParamFloat<px4::params::PFA_YAW_D>) _param_yaw_d,
-		(ParamFloat<px4::params::PFA_MAX_TOR>) _param_vehicle_max_torque
+		(ParamFloat<px4::params::PFA_MAX_TOR>) _param_vehicle_max_torque,
+
+		// module inertia
+		(ParamFloat<px4::params::VEH_AGENT_IXX>) _param_vehicle_agent_ixx,
+		(ParamFloat<px4::params::VEH_AGENT_IYY>) _param_vehicle_agent_iyy,
+		(ParamFloat<px4::params::VEH_AGENT_IZZ>) _param_vehicle_agent_izz,
+
+		(ParamFloat<px4::params::VEH_NAV_IXX>) _param_vehicle_nav_ixx,
+		(ParamFloat<px4::params::VEH_NAV_IYY>) _param_vehicle_nav_iyy,
+		(ParamFloat<px4::params::VEH_NAV_IZZ>) _param_vehicle_nav_izz,
+
+		(ParamFloat<px4::params::VEH_AGENT_MASS>) _param_vehicle_agent_mass
 	)
 
 	void Run() override;
@@ -144,4 +155,22 @@ private:
 		if (!vec.isAllFinite()) return Vector3f(0.0f, 0.0f, 0.0f);
 		else 			return vec;
 	}
+
+	static const uint8_t NUM_AGENTS_MAX{4};
+	struct ParamModuleGeometry {
+		param_t pos_x;
+		param_t pos_y;
+		param_t pos_z;
+		param_t ax_psi;
+	};
+
+	struct ParamHandles {
+		param_t num_agents;
+		ParamModuleGeometry module_geometry[NUM_AGENTS_MAX];
+	} _param_handles{};
+
+	uint8_t _num_agents{0};
+
+	Matrix3f _team_inertia{};
+	void calc_team_inertia(Matrix3f &output);
 };
