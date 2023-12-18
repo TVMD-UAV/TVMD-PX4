@@ -61,6 +61,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -137,12 +138,14 @@ private:
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 
 	vehicle_attitude_s _vehicle_attitude{};
 	trajectory_setpoint_s _trajectory_setpoint{};
+	manual_control_setpoint_s _manual_control_setpoint{};
 	vehicle_control_mode_s _vcontrol_mode{};
 
 	perf_counter_t	_loop_perf;

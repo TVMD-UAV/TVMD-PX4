@@ -50,18 +50,21 @@
  * Gain of P controller X
  *
  * @group PFA Position Control
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(PFA_GAIN_X_P, 0.05f);
 /**
  * Gain of P controller Y
  *
  * @group PFA Position Control
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(PFA_GAIN_Y_P, 0.05f);
 /**
  * Gain of P controller Z
  *
  * @group PFA Position Control
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(PFA_GAIN_Z_P, 0.50f);
 
@@ -69,6 +72,7 @@ PARAM_DEFINE_FLOAT(PFA_GAIN_Z_P, 0.50f);
  * Gain of D controller X
  *
  * @group PFA Position Control
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(PFA_GAIN_X_D, 0.05f);
 
@@ -76,6 +80,7 @@ PARAM_DEFINE_FLOAT(PFA_GAIN_X_D, 0.05f);
  * Gain of D controller Y
  *
  * @group PFA Position Control
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(PFA_GAIN_Y_D, 0.05f);
 
@@ -83,6 +88,7 @@ PARAM_DEFINE_FLOAT(PFA_GAIN_Y_D, 0.05f);
  * Gain of D controller Z
  *
  * @group PFA Position Control
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(PFA_GAIN_Z_D, 2.00f);
 
@@ -90,6 +96,7 @@ PARAM_DEFINE_FLOAT(PFA_GAIN_Z_D, 2.00f);
  * Mass of the vehicle in Kg
  *
  * @group PFA Position Control
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(PFA_VEH_MASS, 5.5179f);
 
@@ -97,6 +104,7 @@ PARAM_DEFINE_FLOAT(PFA_VEH_MASS, 5.5179f);
  * Maximum thrust of the vechicle in Newton
  *
  * @group PFA Position Control
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(PFA_MAX_THR, 58.8f);
 

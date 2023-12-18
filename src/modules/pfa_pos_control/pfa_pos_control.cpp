@@ -103,9 +103,9 @@ void PFAPOSControl::parameters_update(bool force)
 void PFAPOSControl::_update_position_control_enable_time()
 {
 	if (_vcontrol_mode_sub.updated()) {
-		const bool previous_vcontrol_mode_enabled = _vcontrol_mode.flag_control_position_enabled;
+		const bool previous_vcontrol_mode_enabled = _vcontrol_mode.flag_multicopter_position_control_enabled;
 		if (_vcontrol_mode_sub.update(&_vcontrol_mode)) {
-			if (!previous_vcontrol_mode_enabled && _vcontrol_mode.flag_control_position_enabled) {
+			if (!previous_vcontrol_mode_enabled && _vcontrol_mode.flag_multicopter_position_control_enabled) {
 				_time_position_control_enabled = _vcontrol_mode.timestamp;
 			}
 		}
@@ -147,6 +147,7 @@ void PFAPOSControl::pose_controller_6dof(
 	const Vector3f Kv = Vector3f(_param_pose_gain_d_x.get(), _param_pose_gain_d_y.get(), _param_pose_gain_d_z.get());
 
 	// Retrieve current states
+	// Quaternion rotation from the FRD body frame to the NED earth frame
 	const Quatf q_att(vehicle_attitude.q);
 	const Vector3f pos = Vector3f(vlocal_pos.x, vlocal_pos.y, vlocal_pos.z);
 	const Vector3f vel = Vector3f(vlocal_pos.vx, vlocal_pos.vy, vlocal_pos.vz);
@@ -172,16 +173,17 @@ void PFAPOSControl::pose_controller_6dof(
 	const Vector3f control_force = control_acc * _param_vehicle_mass.get();
 	const Vector3f control_normalized_force = control_force / _param_vehicle_max_thrust.get();
 
+	// Rotate the thrust from global to body frame
+	const Vector3f rotated_input = q_att.rotateVectorInverse(control_normalized_force);
+	// const Vector3f rotated_input = control_normalized_force;
+
 	// Limit thrust vector and check for saturation
 	// NED frame (north east down)
-	const Vector3f limited_thrust_des = matrix::constrain(control_normalized_force,
+	const Vector3f limited_thrust_des = matrix::constrain(rotated_input,
 		Vector3f(-_thrust_xy_max, -_thrust_xy_max, _thrust_up_max),
 		Vector3f(_thrust_xy_max, _thrust_xy_max, _thrust_min));
 
-	// Rotate the thrust from global to body frame
-	const Vector3f rotated_input = q_att.rotateVectorInverse(limited_thrust_des);
-
-	publish_attitude_setpoint(rotated_input, euler_attitude_des);
+	publish_attitude_setpoint(limited_thrust_des, euler_attitude_des);
 
 	vehicle_local_position_setpoint_s local_pos_sp{};
 	local_pos_sp.timestamp = hrt_absolute_time();
@@ -249,8 +251,45 @@ void PFAPOSControl::Run()
 
 		_update_position_control_enable_time();
 
-		if (_vcontrol_mode.flag_control_position_enabled
+		if (_vcontrol_mode.flag_control_manual_enabled) {
+			// manual mode: direct velocity control in z-axis
+			if (_manual_control_setpoint_sub.update(&_manual_control_setpoint)) {
+				const float roll = _manual_control_setpoint.roll * M_DEG_TO_RAD_F * 30.0f;
+				const float pitch = _manual_control_setpoint.pitch * M_DEG_TO_RAD_F * 30.0f;
+				const float yaw = _manual_control_setpoint.yaw;
+
+				// throttle normalize from -1~1 to 0~1
+				const float level = (_manual_control_setpoint.throttle - (-1.0f)) / (1.0f - (-1.0f));
+
+				// if throttle > 0.5, control is dominated by velocity command
+				const float vel_z = (level < 0.5f) ? 0.0f : 2 * (level - 0.5f);
+
+				// if throttle < 0.5, control is dominated by acceleration command (to resist gravity)
+    				// to avoid immediate rise of thrust setpoints
+				const float acc_z = - CONSTANTS_ONE_G * ((level < 0.5f) ? (_manual_control_setpoint.throttle) : 0.0f);
+
+				trajectory_setpoint_s traj_des{};
+				traj_des.position[0] = NAN;
+				traj_des.position[1] = NAN;
+				traj_des.position[2] = NAN;
+				traj_des.velocity[0] = 0;
+				traj_des.velocity[1] = 0;
+				traj_des.velocity[2] = vel_z;
+				traj_des.acceleration[0] = 0;
+				traj_des.acceleration[1] = 0;
+				traj_des.acceleration[2] = acc_z;
+
+				_thrust_up_max = -1.0f;
+				_thrust_xy_max = -0.3f * _thrust_up_max;
+
+				const Vector3f attitude_des = Vector3f(roll, pitch, yaw);
+
+				pose_controller_6dof(
+					traj_des, attitude_des, _vehicle_attitude, vlocal_pos);
+			}
+		} else if (_vcontrol_mode.flag_multicopter_position_control_enabled
 			&& (_trajectory_setpoint.timestamp >= _time_position_control_enabled)) {
+			// position mode / altitude mode
 
 			_vehicle_constraints_sub.update(&_vehicle_constraints);
 
@@ -264,8 +303,8 @@ void PFAPOSControl::Run()
 			_thrust_up_max = _takeoff.updateRamp(dt, _thrust_max);
 			// const float speed_down = PX4_ISFINITE(_vehicle_constraints.speed_down) ? _vehicle_constraints.speed_down :
 
-			const bool flying                    = (_takeoff.getTakeoffState() >= TakeoffState::rampup);
-			const bool ramping_up 							 = (_takeoff.getTakeoffState() == TakeoffState::rampup);
+			const bool flying               = (_takeoff.getTakeoffState() >= TakeoffState::rampup);
+			const bool ramping_up 		= (_takeoff.getTakeoffState() == TakeoffState::rampup);
 			// const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
 
 			// The flying state including the rampup phase
@@ -349,7 +388,8 @@ Controls the attitude of an partially fully actuated (PFA).
 Publishes `attitude_setpoint` messages.
 ### Implementation
 Currently, this implementation supports only a few modes:
- * Position mode with takeoff 
+ * Position mode with takeoff
+ * Manual mode
 ### Examples
 CLI usage example:
 $ pfa_pos_control start
