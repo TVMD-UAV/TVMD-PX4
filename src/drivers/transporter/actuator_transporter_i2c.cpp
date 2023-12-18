@@ -60,15 +60,15 @@
 
 using namespace time_literals;
 
+// The address of agent flight controllers
 #define TRANSPORTER_BASEADDR 0x66
-
-// #define TRANSPORTER_CONTROL_ALLOCATION_RAW    // -1 ~ 1 double
-#define TRANSPORTER_ACTUATOR_OUTPUTS          // pwm values
+#define TRANSPORTER_ACTUATOR_OUTPUTS
 
 class ActuatorTransporter :
 public device::I2C, public I2CSPIDriver<ActuatorTransporter>
 {
 public:
+	static const uint8_t context_num{2};
 	typedef float ControlSignal_t;
 
 	union Instruction {
@@ -86,8 +86,9 @@ public:
 
 	~ActuatorTransporter()
 	{
-		perf_free(_interval_perf_esc);
-		perf_free(_interval_perf_servo);
+		for (int i=0; i<context_num; i++) {
+			perf_free(_output_context[i].perf);
+		}
 		perf_free(_interval_perf_i2c);
 	};
 
@@ -106,24 +107,19 @@ private:
 	uORB::Subscription                 _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	// subscription that schedules WorkItemExample when updated
-#ifdef TRANSPORTER_CONTROL_ALLOCATION_RAW
-	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
-	uORB::Subscription _actuator_servos_sub{ORB_ID(actuator_servos)};
+	struct output_context_s {
+		uORB::Subscription sub;
+		actuator_outputs_s data;
+		hrt_abstime update_time;
+		Instruction::ControlTypes type;
+		perf_counter_t perf;
+		bool updated;
+	} _output_context[context_num];
 
-	actuator_motors_s _actuator_motors;
-	actuator_servos_s _actuator_servos;
-#elif defined(TRANSPORTER_ACTUATOR_OUTPUTS)
+	output_context_s * _context_ptr{&_output_context[0]};
 
 	// TODO: check the instance number of actuator_outputs
-	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_outputs), 2};
-	uORB::Subscription _actuator_servos_sub{ORB_ID(actuator_outputs), 3};
-
-	actuator_outputs_s _actuator_motors;
-	actuator_outputs_s _actuator_servos;
-#endif
-
-	bool _actuator_motors_updated{false};
-	bool _actuator_servos_updated{false};
+	uint32_t _minimum_update_interval_us{1000000 / 50}; // 50 Hz
 
 	int probe() override;
 
@@ -131,10 +127,11 @@ private:
 
 	bool check_subscription();
 
+	uint8_t _current_context_idx{0};
+	void context_switch();
+
 	void broadcast_data(Instruction::ControlTypes type, const ControlSignal_t * const control, size_t size);
 
-	perf_counter_t	_interval_perf_esc{perf_alloc(PC_INTERVAL, MODULE_NAME": ESC interval")};
-	perf_counter_t	_interval_perf_servo{perf_alloc(PC_INTERVAL, MODULE_NAME": SV interval")};
 	perf_counter_t	_interval_perf_i2c{perf_alloc(PC_INTERVAL, MODULE_NAME": I2C interval")};
 };
 
@@ -142,6 +139,20 @@ ActuatorTransporter::ActuatorTransporter(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config)
 {
+	// TODO: check the instance number of actuator_outputs
+	// The instance number 0 and 1 are published by pwm_main and pwm_aux
+	// The instance number 2 and 3 are occupied by I2COut (the order is
+	// determined by the order of the mixing interface initialization, please
+	// refer to the constructor of I2COut in src/drivers/i2c_out/I2COut.cpp)
+	_output_context[0].sub = uORB::Subscription(ORB_ID(actuator_outputs), 2);
+	_output_context[0].update_time = 0;
+	_output_context[0].type = Instruction::MOTORS;
+	_output_context[0].perf = perf_alloc(PC_INTERVAL, MODULE_NAME": MOTORS");
+
+	_output_context[1].sub = uORB::Subscription(ORB_ID(actuator_outputs), 3);
+	_output_context[1].update_time = 0;
+	_output_context[1].type = Instruction::SERVOS;
+	_output_context[1].perf = perf_alloc(PC_INTERVAL, MODULE_NAME": SERVOS");
 }
 
 int ActuatorTransporter::init()
@@ -166,6 +177,7 @@ int ActuatorTransporter::init()
  */
 int ActuatorTransporter::probe()
 {
+	// TODO: check if devices are connected
 	return 0;
 }
 
@@ -183,18 +195,6 @@ void ActuatorTransporter::start()
  * the I2CSPIDriver class, which is a subclass of px4::ScheduleWorkItem.
  */
 void ActuatorTransporter::RunImpl(){
-	if (check_subscription()) {
-		// both topics are broadcasted
-	}
-}
-
-/**
- * @brief This checks if there is new data on the actuator_motors
- * and actuator_servos topics.
- * @return true if there is new data on both topics, false otherwise.
- */
-bool ActuatorTransporter::check_subscription()
-{
 	// update armed state
 	if (_vehicle_status_sub.updated()) {
 		vehicle_status_s vehicle_status;
@@ -204,32 +204,53 @@ bool ActuatorTransporter::check_subscription()
 		}
 	}
 
-	if (_actuator_motors_sub.updated()) {
-		if (_actuator_motors_sub.copy(&_actuator_motors)){
-			// boardcasting
-#ifdef TRANSPORTER_CONTROL_ALLOCATION_RAW
-			broadcast_data(Instruction::MOTORS, _actuator_motors.control, sizeof(_actuator_motors.control));
-#elif defined(TRANSPORTER_ACTUATOR_OUTPUTS)
-			broadcast_data(Instruction::MOTORS, _actuator_motors.output, sizeof(_actuator_motors.output));
-#endif
-			perf_count(_interval_perf_esc);
-			_actuator_motors_updated = true;
-		}
-	}
 
-	if (_actuator_servos_sub.updated()) {
-		if (_actuator_servos_sub.copy(&_actuator_servos)){
-			// boardcasting
-#ifdef TRANSPORTER_CONTROL_ALLOCATION_RAW
-			broadcast_data(Instruction::SERVOS, _actuator_servos.control, sizeof(_actuator_servos.control));
-#elif defined(TRANSPORTER_ACTUATOR_OUTPUTS)
-			broadcast_data(Instruction::SERVOS, _actuator_servos.output, sizeof(_actuator_servos.output));
-#endif
-			perf_count(_interval_perf_servo);
-			_actuator_servos_updated = true;
+	// To avoid the update rate of the same topic is too high, we use two contexts
+	// to store the data. Once the first context is updated, the priority of the
+	// two contexts will be switched.
+	if (!check_subscription()) {
+		// try the second priority topic
+		context_switch();
+		if (!check_subscription()) {
+			// Both contexts are not updated, switch back to the original one
+			context_switch();
 		}
 	}
-	return _actuator_motors_updated && _actuator_servos_updated;
+}
+
+/**
+ * @brief Switch to next context
+ *
+ */
+void ActuatorTransporter::context_switch()
+{
+	_current_context_idx = (_current_context_idx + 1) % context_num;
+	_context_ptr = &_output_context[_current_context_idx];
+}
+
+/**
+ * @brief This checks if there is new data on the current context.
+ * If there is new data, it will be broadcasted through I2C, and the context will
+ * be switched to the next one.
+ * @return true if the data is updated
+ */
+bool ActuatorTransporter::check_subscription()
+{
+	if(_context_ptr->sub.updated() && _context_ptr->sub.copy(&_context_ptr->data)) {
+		const hrt_abstime update_time = _context_ptr->data.timestamp;
+		if (update_time >= _context_ptr->update_time + _minimum_update_interval_us) {
+			// boardcasting
+			broadcast_data(_context_ptr->type, _context_ptr->data.output, sizeof(_context_ptr->data.output));
+			perf_count(_context_ptr->perf);
+			_context_ptr->updated = true;
+			_context_ptr->update_time = update_time;
+
+			// swticth to next context, the next context become the first priority
+			context_switch();
+			return true;
+		}
+	}
+	return false;
 }
 
 void ActuatorTransporter::broadcast_data(Instruction::ControlTypes type, const ControlSignal_t * const control, size_t size)
@@ -247,29 +268,22 @@ void ActuatorTransporter::broadcast_data(Instruction::ControlTypes type, const C
 	else if (ret != PX4_OK) {
 		PX4_ERR("I2C transfer failed");
 	}
-
-// #if defined(__PX4_NUTTX)
-// #else
-// 	PX4_INFO("Motors: %6.2f, %6.2f, %6.2f, %6.2f, %6.2f, %6.2f, %6.2f, %6.2f",
-// 		(double)_actuator_motors.control[0], (double)_actuator_motors.control[1], (double)_actuator_motors.control[2], (double)_actuator_motors.control[3],
-// 		(double)_actuator_motors.control[4], (double)_actuator_motors.control[5], (double)_actuator_motors.control[6], (double)_actuator_motors.control[7]);
-// 	PX4_INFO("Servos: %6.2f, %6.2f, %6.2f, %6.2f, %6.2f, %6.2f, %6.2f, %6.2f",
-// 		(double)_actuator_servos.control[0], (double)_actuator_servos.control[1], (double)_actuator_servos.control[2], (double)_actuator_servos.control[3],
-// 		(double)_actuator_servos.control[4], (double)_actuator_servos.control[5], (double)_actuator_servos.control[6], (double)_actuator_servos.control[7]);
-// #endif
-	_actuator_motors_updated = false;
-	_actuator_servos_updated = false;
 }
 
 void ActuatorTransporter::print_status()
 {
 	I2CSPIDriverBase::print_status();
 
-	perf_print_counter(_interval_perf_esc);
-	perf_print_counter(_interval_perf_servo);
+	for (int i=0; i<context_num; i++) {
+		perf_print_counter(_output_context[i].perf);
+	}
+
 	perf_print_counter(_interval_perf_i2c);
 
-	PX4_INFO_RAW("\nTopic status:\nESC: %s\nServo: %s\n", _actuator_motors_sub.valid() ? "updated" : "no data", _actuator_servos_sub.valid() ? "updated" : "no data");
+	PX4_INFO_RAW("\nTopic status:");
+	for (int i=0; i<context_num; i++) {
+		PX4_INFO_RAW("context[%d]: %s\n", i, _output_context[i].sub.valid() ? "updated" : "no data");
+	}
 
 	for (int i=0; i<10; i++) {
 		if (orb_exists(ORB_ID(actuator_outputs), i) == PX4_OK) {
