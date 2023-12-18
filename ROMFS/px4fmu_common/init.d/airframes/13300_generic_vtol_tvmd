@@ -41,7 +41,7 @@ param set-default CA_MD0_PX 0.215
 param set-default CA_MD0_PY 0.215
 param set-default CA_MD0_PZ 0
 param set-default CA_MD0_AZ 1
-param set-default CA_MD0_X_GR 1.0
+param set-default CA_MD0_X_GR 1.0      # 30 / 11, shaft = 30, motor = 11
 param set-default CA_MD0_Y_GR 1.0
 
 param set-default CA_MD1_PX 0.215
@@ -235,31 +235,31 @@ param set-default I2C_EC_FAIL6 -1
 param set-default I2C_EC_FAIL7 -1
 param set-default I2C_EC_FAIL8 -1
 
-param set-default I2C_SV_MIN1 900
+param set-default I2C_SV_MIN1 1052
 param set-default I2C_SV_MIN2 900
-param set-default I2C_SV_MIN3 900
+param set-default I2C_SV_MIN3 800
 param set-default I2C_SV_MIN4 900
-param set-default I2C_SV_MIN5 900
+param set-default I2C_SV_MIN5 800
 param set-default I2C_SV_MIN6 900
-param set-default I2C_SV_MIN7 900
+param set-default I2C_SV_MIN7 1010
 param set-default I2C_SV_MIN8 900
 
-param set-default I2C_SV_MAX1 2100
+param set-default I2C_SV_MAX1 2200
 param set-default I2C_SV_MAX2 2100
-param set-default I2C_SV_MAX3 2100
+param set-default I2C_SV_MAX3 1990
 param set-default I2C_SV_MAX4 2100
-param set-default I2C_SV_MAX5 2100
+param set-default I2C_SV_MAX5 1990
 param set-default I2C_SV_MAX6 2100
-param set-default I2C_SV_MAX7 2100
+param set-default I2C_SV_MAX7 2200
 param set-default I2C_SV_MAX8 2100
 
-param set-default I2C_SV_DIS1 1590
+param set-default I2C_SV_DIS1 1626
 param set-default I2C_SV_DIS2 1500
-param set-default I2C_SV_DIS3 1320
+param set-default I2C_SV_DIS3 1395
 param set-default I2C_SV_DIS4 1500
-param set-default I2C_SV_DIS5 1420
+param set-default I2C_SV_DIS5 1395
 param set-default I2C_SV_DIS6 1500
-param set-default I2C_SV_DIS7 1280
+param set-default I2C_SV_DIS7 1605
 param set-default I2C_SV_DIS8 1500
 
 param set-default I2C_SV_FAIL1 -1

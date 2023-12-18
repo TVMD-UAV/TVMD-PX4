@@ -558,7 +558,7 @@ parameters:
             description:
                 short: Position of module ${i} along X body axis relative to center of gravity
             type: float
-            decimal: 2
+            decimal: 3
             increment: 0.1
             unit: m
             num_instances: *max_num_tilts
@@ -569,7 +569,7 @@ parameters:
             description:
                 short: Position of module ${i} along Y body axis relative to center of gravity
             type: float
-            decimal: 2
+            decimal: 3
             increment: 0.1
             unit: m
             num_instances: *max_num_tilts
@@ -580,7 +580,7 @@ parameters:
             description:
                 short: Position of module ${i} along Z body axis relative to center of gravity
             type: float
-            decimal: 2
+            decimal: 3
             increment: 0.1
             unit: m
             num_instances: *max_num_tilts
@@ -604,7 +604,7 @@ parameters:
                 short: x-servo gear ration
                 long: The gear ration of ${i}-th module's x-axis servo gear ration
             type: float
-            decimal: 2
+            decimal: 3
             increment: 0.1
             num_instances: *max_num_tilts
             min: -100
@@ -615,7 +615,7 @@ parameters:
                 short: y-servo gear ration
                 long: The gear ration of ${i}-th module's y-axis servo gear ration
             type: float
-            decimal: 2
+            decimal: 3
             increment: 0.1
             num_instances: *max_num_tilts
             min: -100

@@ -20,8 +20,8 @@ actuator_output:
       channel_label: 'Servo'
       standard_params:
         disarmed: { min: 1000, max: 2000, default: 1500 }
-        min: { min: 1000, max: 1500, default: 1000 }
-        max: { min: 1500, max: 2000, default: 2000 }
+        min: { min: 800, max: 1500, default: 1000 }
+        max: { min: 1500, max: 2200, default: 2000 }
         failsafe: { min: 1000, max: 2000 }
       num_channels: 8
 

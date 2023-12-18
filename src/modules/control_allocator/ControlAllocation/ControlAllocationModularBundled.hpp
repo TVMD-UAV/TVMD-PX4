@@ -62,10 +62,11 @@ public:
 	static constexpr float rho {1.225};    			// air density in kg/m3
 	static constexpr float c_l {0.020231}; 			// propeller thrust coefficient
 
-	static constexpr float sigma_eta[2] {M_PI_F / 6.0f, M_PI_F / 2.0f};
+	// static constexpr float sigma_eta[2] {M_PI_F / 6.0f, M_PI_F / 2.0f};
+	static constexpr float sigma_eta[2] {M_PI_F / 8.0f, M_PI_F / 2.0f};
 	static constexpr float r_sigma_eta[2] {M_PI_F / 10.0f, M_PI_F / 10.0f};
 	static constexpr float f_max {9.818f * 1.5f};	// maximum thrust of a single agent
-	static constexpr float f_min {0.01f};			// minimum thrust of a single agent
+	static constexpr float f_min {0.5f};			// minimum thrust of a single agent
 
 	// Coordinate transformation
 	const float team_t_max {15.0f};					// maximum torque of the team

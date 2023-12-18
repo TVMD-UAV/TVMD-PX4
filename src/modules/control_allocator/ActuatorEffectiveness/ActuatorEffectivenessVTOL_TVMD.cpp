@@ -232,11 +232,15 @@ ActuatorEffectivenessVTOL_TVMD::getEffectivenessMatrix(Configuration &configurat
 			for (int j = 0; j < 2; ++j) {
 				const float servo_max = _geometry.module_geometry[i].servo_conf[j](2);
 				const float servo_min = _geometry.module_geometry[i].servo_conf[j](1);
+				const float gear_ratio = _geometry.module_geometry[i].gear_ratio[j];
 
 				_actuator_scale(get_motor_idx(i, j)) = 1.0f;
 
 				// servos: angle (rad) -> -1 ~ 1
-				_actuator_scale(get_servo_idx(i, j)) = (1.0f - (-1.0f)) / (servo_max - servo_min);
+				// servo_max is the angle of the servo measured at the maximum pwm value
+				// servo_min is the angle of the servo measured at the minimum pwm value
+				// The tilting angle limits are dealt in control allocation
+				_actuator_scale(get_servo_idx(i, j)) = (1.0f - (-1.0f)) * gear_ratio / (servo_max - servo_min);
 			}
 		}
 
