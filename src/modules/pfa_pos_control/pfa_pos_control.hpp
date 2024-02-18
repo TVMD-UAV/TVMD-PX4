@@ -158,6 +158,8 @@ private:
 		(ParamFloat<px4::params::PFA_GAIN_Y_D>) _param_pose_gain_d_y,
 		(ParamFloat<px4::params::PFA_GAIN_Z_D>) _param_pose_gain_d_z,
 
+		(ParamInt<px4::params::PFA_TKF_BYP>)    _param_takeoff_bypass,
+
 		(ParamFloat<px4::params::PFA_VEH_MASS>) _param_vehicle_mass,
 		(ParamFloat<px4::params::PFA_MAX_THR>)  _param_vehicle_max_thrust,
 
@@ -167,10 +169,6 @@ private:
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn
 	)
-
-	// DEFINE_PARAMETERS_CUSTOM_PARENT(MulticopterPositionControl,
-	// DEFINE_PARAMETERS(
-	// )
 
 
 	void Run() override;

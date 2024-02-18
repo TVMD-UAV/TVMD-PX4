@@ -59,6 +59,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -69,6 +70,8 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/uORB.h>
+
+#include "pfa_att_planner.hpp"
 
 using matrix::Eulerf;
 using matrix::Quatf;
@@ -96,6 +99,9 @@ public:
 
 	bool init();
 
+protected:
+	PFAAttPlanner planner{this};
+
 private:
 	void publishTorqueSetpoint(const hrt_abstime &timestamp_sample);
 	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
@@ -112,6 +118,8 @@ private:
 	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};			/**< vehicle status subscription */
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
+
+	uORB::PublicationMulti<vehicle_attitude_setpoint_s> _vehicle_planned_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};	/**< vehicle attitude setpoint */
 
 	vehicle_thrust_setpoint_s _vehicle_thrust_setpoint{};
 	vehicle_torque_setpoint_s _vehicle_torque_setpoint{};
@@ -130,6 +138,7 @@ private:
 		(ParamFloat<px4::params::PFA_YAW_P>) _param_yaw_p,
 		(ParamFloat<px4::params::PFA_YAW_D>) _param_yaw_d,
 		(ParamFloat<px4::params::PFA_MAX_TOR>) _param_vehicle_max_torque,
+		(ParamInt<px4::params::PFA_EN_ATT_PLAN>) _param_enable_attitude_planner,
 
 		// module inertia
 		(ParamFloat<px4::params::VEH_AGENT_IXX>) _param_vehicle_agent_ixx,
@@ -140,7 +149,9 @@ private:
 		(ParamFloat<px4::params::VEH_NAV_IYY>) _param_vehicle_nav_iyy,
 		(ParamFloat<px4::params::VEH_NAV_IZZ>) _param_vehicle_nav_izz,
 
-		(ParamFloat<px4::params::VEH_AGENT_MASS>) _param_vehicle_agent_mass
+		(ParamFloat<px4::params::VEH_AGENT_MASS>) _param_vehicle_agent_mass,
+
+		(ParamFloat<px4::params::PFA_MAX_THR>)  _param_vehicle_max_thrust
 	)
 
 	void Run() override;

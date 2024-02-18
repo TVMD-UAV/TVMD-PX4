@@ -36,5 +36,9 @@ px4_add_module(
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
+		pfa_att_planner.hpp
+		pfa_att_control.hpp
 		pfa_att_control.cpp
 	)
+
+px4_add_functional_gtest(SRC pfa_att_planner_test.cpp)

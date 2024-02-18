@@ -187,6 +187,9 @@ void PFAPOSControl::pose_controller_6dof(
 
 	vehicle_local_position_setpoint_s local_pos_sp{};
 	local_pos_sp.timestamp = hrt_absolute_time();
+	local_pos_sp.x = err_pos(0);
+	local_pos_sp.y = err_pos(1);
+	local_pos_sp.z = err_pos(2);
 	local_pos_sp.vx = limited_vel_des(0);
 	local_pos_sp.vy = limited_vel_des(1);
 	local_pos_sp.vz = limited_vel_des(2);
@@ -208,13 +211,13 @@ void PFAPOSControl::stabilization_controller_6dof(
 	trajectory_setpoint_s stab_traj_des = traj_des;
 	stab_traj_des.position[0] = vlocal_pos.x;
 	stab_traj_des.position[1] = vlocal_pos.y;
-	stab_traj_des.position[2] = _takeoff_hover_height;
+	stab_traj_des.position[2] = vlocal_pos.z;
 	stab_traj_des.velocity[0] = 0;
 	stab_traj_des.velocity[1] = 0;
 	stab_traj_des.velocity[2] = 0;
 	stab_traj_des.acceleration[0] = 0;
 	stab_traj_des.acceleration[1] = 0;
-	stab_traj_des.acceleration[2] = 0;
+	stab_traj_des.acceleration[2] = 2.5f;	// -g + 4.5 ~ -5.0
 
 	pose_controller_6dof(stab_traj_des, euler_attitude_des, vehicle_attitude, vlocal_pos);
 }
@@ -248,46 +251,48 @@ void PFAPOSControl::Run()
 
 		_vehicle_attitude_sub.update(&_vehicle_attitude);
 		_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
 		_update_position_control_enable_time();
 
 		if (_vcontrol_mode.flag_control_manual_enabled) {
 			// manual mode: direct velocity control in z-axis
-			if (_manual_control_setpoint_sub.update(&_manual_control_setpoint)) {
-				const float roll = _manual_control_setpoint.roll * M_DEG_TO_RAD_F * 30.0f;
-				const float pitch = _manual_control_setpoint.pitch * M_DEG_TO_RAD_F * 30.0f;
-				const float yaw = _manual_control_setpoint.yaw;
+			// if (_manual_control_setpoint_sub.update(&_manual_control_setpoint)) {
+			const float roll = _manual_control_setpoint.roll * M_DEG_TO_RAD_F * 90.0f;
+			const float pitch = _manual_control_setpoint.pitch * M_DEG_TO_RAD_F * 90.0f;
+			const float yaw = _manual_control_setpoint.yaw;
 
-				// throttle normalize from -1~1 to 0~1
-				const float level = (_manual_control_setpoint.throttle - (-1.0f)) / (1.0f - (-1.0f));
+			// throttle normalize from -1~1 to 0~1
+			const float level = (_manual_control_setpoint.throttle - (-1.0f)) / (1.0f - (-1.0f));
 
-				// if throttle > 0.5, control is dominated by velocity command
-				const float vel_z = (level < 0.5f) ? 0.0f : 2 * (level - 0.5f);
+			// if throttle > 0.5, control is dominated by velocity command
+			const float vel_z = - ((level < 0.5f) ? 0.0f : 2 * (level - 0.5f));
 
-				// if throttle < 0.5, control is dominated by acceleration command (to resist gravity)
-    				// to avoid immediate rise of thrust setpoints
-				const float acc_z = - CONSTANTS_ONE_G * ((level < 0.5f) ? (_manual_control_setpoint.throttle) : 0.0f);
+			// if throttle < 0.5, control is dominated by acceleration command (to resist gravity)
+			// to avoid immediate rise of thrust setpoints
+			const float acc_z = - CONSTANTS_ONE_G * ((level < 0.5f) ? (_manual_control_setpoint.throttle) : 0.0f);
 
-				trajectory_setpoint_s traj_des{};
-				traj_des.position[0] = NAN;
-				traj_des.position[1] = NAN;
-				traj_des.position[2] = NAN;
-				traj_des.velocity[0] = 0;
-				traj_des.velocity[1] = 0;
-				traj_des.velocity[2] = vel_z;
-				traj_des.acceleration[0] = 0;
-				traj_des.acceleration[1] = 0;
-				traj_des.acceleration[2] = acc_z;
+			trajectory_setpoint_s traj_des{};
+			traj_des.position[0] = NAN;
+			traj_des.position[1] = NAN;
+			traj_des.position[2] = NAN;
+			traj_des.velocity[0] = 0;
+			traj_des.velocity[1] = 0;
+			traj_des.velocity[2] = vel_z;
+			traj_des.acceleration[0] = 0;
+			traj_des.acceleration[1] = 0;
+			traj_des.acceleration[2] = acc_z;
 
-				_thrust_up_max = -1.0f;
-				_thrust_xy_max = -0.3f * _thrust_up_max;
+			_thrust_up_max = -1.0f;
+			_thrust_xy_max = -0.3f * _thrust_up_max;
 
-				const Vector3f attitude_des = Vector3f(roll, pitch, yaw);
+			const Vector3f attitude_des = Vector3f(roll, pitch, yaw);
 
-				pose_controller_6dof(
-					traj_des, attitude_des, _vehicle_attitude, vlocal_pos);
-			}
-		} else if (_vcontrol_mode.flag_multicopter_position_control_enabled
+			pose_controller_6dof(
+				traj_des, attitude_des, _vehicle_attitude, vlocal_pos);
+			// }
+		} else if ((_vcontrol_mode.flag_multicopter_position_control_enabled
+				|| _vcontrol_mode.flag_control_offboard_enabled)
 			&& (_trajectory_setpoint.timestamp >= _time_position_control_enabled)) {
 			// position mode / altitude mode
 
@@ -296,20 +301,22 @@ void PFAPOSControl::Run()
 			// TODO: the land process is not handled yet
 			// Update takeoff state machine
 			_takeoff.updateTakeoffState(
-				_vcontrol_mode.flag_armed, false, _vehicle_constraints.want_takeoff,
+				_vcontrol_mode.flag_armed, false,
+				((_param_takeoff_bypass.get() > 0) ? true : _vehicle_constraints.want_takeoff),
 				_thrust_max, false, vlocal_pos.timestamp_sample);
 
 			// Return the maximum thrust according to the takeoff state machine
 			_thrust_up_max = _takeoff.updateRamp(dt, _thrust_max);
 			// const float speed_down = PX4_ISFINITE(_vehicle_constraints.speed_down) ? _vehicle_constraints.speed_down :
 
-			const bool flying               = (_takeoff.getTakeoffState() >= TakeoffState::rampup);
-			const bool ramping_up 		= (_takeoff.getTakeoffState() == TakeoffState::rampup);
+			const bool flying     = (_takeoff.getTakeoffState() >= TakeoffState::rampup);
+			const bool ramping_up = (_takeoff.getTakeoffState() == TakeoffState::rampup);
 			// const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
 
 			// The flying state including the rampup phase
 			if (flying) {
-				const Vector3f attitude_des = Vector3f(0.0f, 0.0f, _trajectory_setpoint.yaw);
+				// const Vector3f attitude_des = Vector3f(0.0f, 0.0f, _trajectory_setpoint.yaw);
+				const Vector3f attitude_des = Vector3f(_manual_control_setpoint.roll, _manual_control_setpoint.pitch, _manual_control_setpoint.yaw);
 
 				if (ramping_up) {
 					// Reset position setpoint to current xy-position at the hovering height

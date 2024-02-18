@@ -96,9 +96,9 @@ PARAM_DEFINE_FLOAT(PFA_GAIN_Z_D, 2.00f);
  * Mass of the vehicle in Kg
  *
  * @group PFA Position Control
- * @decimal 2
+ * @decimal 3
  */
-PARAM_DEFINE_FLOAT(PFA_VEH_MASS, 5.5179f);
+PARAM_DEFINE_FLOAT(PFA_VEH_MASS, 3.058f);
 
 /**
  * Maximum thrust of the vechicle in Newton
@@ -106,5 +106,11 @@ PARAM_DEFINE_FLOAT(PFA_VEH_MASS, 5.5179f);
  * @group PFA Position Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(PFA_MAX_THR, 58.8f);
+PARAM_DEFINE_FLOAT(PFA_MAX_THR, 49.09f);
 
+/**
+ * Bypassing takeoff process (takeoff immediately after arming)
+ *
+ * @group PFA Position Control
+ */
+PARAM_DEFINE_INT32(PFA_TKF_BYP, 1);

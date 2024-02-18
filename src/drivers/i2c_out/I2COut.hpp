@@ -149,7 +149,7 @@ public:
 		perf_print_counter(_interval_perf);
 		_mixing_output.printStatus();
 	}
-	
+
 private:
 	friend class I2COUT;
 
@@ -165,7 +165,7 @@ private:
 	};
 
 	MixingOutput _mixing_output;
-	
+
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 };
@@ -206,6 +206,7 @@ public:
 
 private:
 	int _count{0};
+	bool _first_update_cycle{true};
 	void Run() override;
 
 	void update_params();
@@ -214,8 +215,6 @@ private:
 	I2CMixingInterfaceServo _mixing_interface_servo;
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-	bool		_first_update_cycle{true};
 
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};

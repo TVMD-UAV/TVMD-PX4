@@ -59,6 +59,7 @@ PFAAttitudeControl::PFAAttitudeControl():
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	_param_handles.num_agents = param_find("CA_MD_COUNT");
+	_vehicle_planned_attitude_setpoint_sub.advertise();
 
 	for (int i = 0; i < NUM_AGENTS_MAX; ++i) {
 		char buffer[17];
@@ -81,6 +82,7 @@ PFAAttitudeControl::PFAAttitudeControl():
 PFAAttitudeControl::~PFAAttitudeControl()
 {
 	perf_free(_loop_perf);
+	_vehicle_planned_attitude_setpoint_sub.unadvertise();
 }
 
 bool PFAAttitudeControl::init()
@@ -184,7 +186,6 @@ void PFAAttitudeControl::constrain_actuator_commands(
 	_vehicle_torque_setpoint_pub.publish(_vehicle_torque_setpoint);
 }
 
-
 /** Partially Fully Actuated Geometric Controller
  */
 void PFAAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude,
@@ -195,18 +196,33 @@ void PFAAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 
 	// Retrieving state variables
 	const Quatf q_att(attitude.q);
-	const Matrix3f rot_att =  matrix::Dcm<float>(q_att);
+	const Matrix3f R =  matrix::Dcm<float>(q_att);
 	const Vector3f omega = _checkAllFinite(Vector3f(angular_velocity.xyz));
 
 	// Retrieving setpoints
 	// const Vector3f euler_offset = Vector3f(-0.3f, 0.3f, 0.0f);
 	const Vector3f euler_offset = Vector3f(0.0f, 0.0f, 0.0f);
 	const Vector3f att_euler_des = _checkAllFinite(Vector3f(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, attitude_setpoint.yaw_body)) + euler_offset;
-	const Dcmf rot_des = Eulerf(att_euler_des);
+	const Dcmf rot_ref = Dcmf(Eulerf(att_euler_des));
 
-	const Vector3f omega_offset = Vector3f(-0.1f, 0.1f, -2.5f);
-	// const Vector3f omega_offset = Vector3f(0.0f, 0.0f, 0.0f);
-	const Vector3f omega_des = _checkAllFinite(Vector3f(rates_setpoint.roll, rates_setpoint.pitch, rates_setpoint.yaw)) + omega_offset;
+	// const Vector3f omega_offset = Vector3f(-0.1f, 0.1f, -2.5f);
+	const Vector3f omega_offset = Vector3f(0.0f, 0.0f, 0.0f);
+	const Vector3f omega_ref = _checkAllFinite(Vector3f(rates_setpoint.roll, rates_setpoint.pitch, rates_setpoint.yaw)) + omega_offset;
+
+
+	const Vector3f thrusts = Vector3f(attitude_setpoint.thrust_body);
+
+	Dcmf R_d;
+	Vector3f omega_d;
+	if (_param_enable_attitude_planner.get() > 0) {
+		// TODO: the thrust in the attitude planner is in NWU frame
+		const Vector3f thrusts_NWU = Vector3f(thrusts(0), -thrusts(1), -thrusts(2));
+		planner.plan(thrusts_NWU, rot_ref, omega_ref, R_d, omega_d);
+	}
+	else {
+		R_d = rot_ref;
+		omega_d = omega_ref;
+	}
 
 	// Retrieve gains
 	const Vector3f Kr = Vector3f(_param_roll_p.get(), _param_pitch_p.get(), _param_yaw_p.get());
@@ -215,20 +231,47 @@ void PFAAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 
 	// Compute attitude error
 	// e_R = 0.5 * (R_d.T * R - R.T * R_d)
-	const Dcmf e_R = 0.5f * (rot_des.transpose() * rot_att - rot_att.transpose() * rot_des);
+	const Dcmf e_R = 0.5f * (R_d.T() * R - R.T() * R_d);
 	const Vector3f e_R_vec = e_R.vee();
-	const Vector3f err_omega = omega - omega_des;
+	const Vector3f err_omega = omega - omega_d;
 
 
 	// Compute torque control
 	// max torque should be set to the same value as the one in control allocation
 	// TODO: add inertia matrix
 	const Vector3f torques = - _team_inertia * (Kr.emult(e_R_vec) + Kw.emult(err_omega)) / _param_vehicle_max_torque.get();
-	const Vector3f thrusts = Vector3f(attitude_setpoint.thrust_body);
 
 	const Vector3f torque_offset = Vector3f(0.0f, 0.0f, 0.0f);
 
-	constrain_actuator_commands(torques + torque_offset, thrusts);
+	Vector3f thrusts_out, torque_out;
+	if (_param_enable_attitude_planner.get() > 0) {
+		planner.output_wrench_projection(
+			torques + torque_offset, thrusts, torque_out, thrusts_out);
+	}
+	else {
+		torque_out = torques + torque_offset;
+		thrusts_out = thrusts;
+	}
+
+	constrain_actuator_commands(torque_out, thrusts_out);
+	// TODO: bug exists: publishing all zero terms
+	// The calculation results of attitude planner seem to be incorrect
+
+	// vehicle_attitude_setpoint_s planned_attitude_setpoint;
+	// planned_attitude_setpoint.timestamp = hrt_absolute_time();
+
+	// Quatf Q_d = Quatf(R_d);
+	// planned_attitude_setpoint.q_d[0] = Q_d(0);
+	// planned_attitude_setpoint.q_d[1] = Q_d(1);
+	// planned_attitude_setpoint.q_d[2] = Q_d(2);
+	// planned_attitude_setpoint.q_d[3] = Q_d(3);
+
+	// Eulerf euler_angles_d(Q_d);
+	// planned_attitude_setpoint.roll_body = euler_angles_d.phi();
+	// planned_attitude_setpoint.pitch_body = euler_angles_d.theta();
+	// planned_attitude_setpoint.yaw_body = euler_angles_d.psi();
+
+	// _vehicle_planned_attitude_setpoint_sub.publish(planned_attitude_setpoint);
 }
 
 void PFAAttitudeControl::Run()
