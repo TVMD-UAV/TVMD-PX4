@@ -65,7 +65,7 @@ public:
 	// static constexpr float sigma_eta[2] {M_PI_F / 6.0f, M_PI_F / 2.0f};
 	static constexpr float sigma_eta[2] {M_PI_F / 8.0f, M_PI_F / 2.0f};
 	static constexpr float r_sigma_eta[2] {M_PI_F / 10.0f, M_PI_F / 10.0f};
-	static constexpr float f_max {9.818f * 1.5f};	// maximum thrust of a single agent
+	static constexpr float f_max {9.818f * 1.25f};	// maximum thrust of a single agent
 	static constexpr float f_min {0.5f};			// minimum thrust of a single agent
 
 	// Coordinate transformation
@@ -94,7 +94,7 @@ public:
 
 	matrix::Vector<float, NUM_AXES> getAllocatedControl() const override {
 		// transform back to the original coordinate
-		return (_eff * _f).edivide(coord_trans); 
+		return (_eff * _f).edivide(coord_trans);
 	};
 
 	static void forward_transform(const matrix::Vector3f &raw, matrix::Vector3f &f_i);

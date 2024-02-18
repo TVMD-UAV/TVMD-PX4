@@ -44,6 +44,8 @@
 #include "ActuatorEffectiveness.hpp"
 
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
@@ -51,7 +53,7 @@
 
 using namespace time_literals;
 
-#define ACTUATOR_EFFECTIVENESS_DEBUGGER
+// #define ACTUATOR_EFFECTIVENESS_DEBUGGER
 
 class ActuatorEffectivenessVTOL_TVMD : public ModuleParams, public ActuatorEffectiveness
 {
@@ -61,7 +63,9 @@ public:
 	// TODO: The bias terms are needed to be determined
 	// static constexpr float Tf0 = -2.9717;
 	// static constexpr float Td0 =  0.0040;
-	static constexpr float c_l = 10.2645f;
+	// static constexpr float c_l = 10.2645f;
+	// static constexpr float c_d =  0.2132f;
+	static constexpr float c_l =  6.1250f;
 	static constexpr float c_d =  0.2132f;
 	static constexpr float Tf0 =  0.0000f;
 	static constexpr float Td0 =  0.0000f;
@@ -108,7 +112,7 @@ public:
 
 protected:
 
-	void tf_mapping(const uint8_t module_id, const matrix::Vector2f tftd, matrix::Vector2f u_prop) const;
+	// void tf_mapping(const uint8_t module_id, const matrix::Vector2f tftd, matrix::Vector2f u_prop) const;
 
 private:
 

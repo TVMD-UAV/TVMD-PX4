@@ -34,6 +34,23 @@ param set-default EKF2_FUSE_BETA 0 # side slip fusion is currently not supported
 param set-default CA_AIRFRAME 13
 param set-default CA_METHOD 3
 
+
+## General Settings
+param set-default SENS_BOARD_ROT 20     ## FCU direction: ROTATION_ROLL_270
+
+param set-default EKF2_EV_CTRL 11       ## Enable external vision in EKF2
+param set-default EKF2_BARO_CTRL 0      ## We trust vision feedback
+param set-default MAV_1_CONFIG 102      ## TELEM 2
+param set-default MAV_1_MODE 8          ## EXTERNAL VISION
+
+param set-default COM_DISARM_PRFLT 600  ## 10 minutes before force disarming (for debugging)
+param set-default COM_POWER_COUNT 0     ## We only have one power source
+param set-default BAT1_N_CELLS 4
+
+param set-default CBRK_AIRSPD_CHK 162128
+param set-default COM_CPU_MAX -1
+
+
 # Module settings
 param set-default CA_MD_COUNT 4
 
@@ -41,7 +58,7 @@ param set-default CA_MD0_PX 0.215
 param set-default CA_MD0_PY 0.215
 param set-default CA_MD0_PZ 0
 param set-default CA_MD0_AZ 1
-param set-default CA_MD0_X_GR 1.0      # 30 / 11, shaft = 30, motor = 11
+param set-default CA_MD0_X_GR 1.0      ## 30 / 11, shaft = 30, motor = 11
 param set-default CA_MD0_Y_GR 1.0
 
 param set-default CA_MD1_PX 0.215
@@ -127,43 +144,43 @@ param set-default CA_ROTOR7_TILT 8
 # Tilting servos
 param set-default CA_SV_TL_COUNT 8
 
-param set-default CA_SV_TL0_MINA -30
-param set-default CA_SV_TL0_MAXA 30
+param set-default CA_SV_TL0_MINA -20
+param set-default CA_SV_TL0_MAXA 20
 param set-default CA_SV_TL0_TD 0
 param set-default CA_SV_TL0_CT 1
 
-param set-default CA_SV_TL1_MINA -90
-param set-default CA_SV_TL1_MAXA 90
+param set-default CA_SV_TL1_MINA -45
+param set-default CA_SV_TL1_MAXA 45
 param set-default CA_SV_TL1_TD 90
 param set-default CA_SV_TL1_CT 1
 
-param set-default CA_SV_TL2_MINA -30
-param set-default CA_SV_TL2_MAXA 30
+param set-default CA_SV_TL2_MINA -20
+param set-default CA_SV_TL2_MAXA 20
 param set-default CA_SV_TL2_TD 0
 param set-default CA_SV_TL2_CT 1
 
-param set-default CA_SV_TL3_MINA -90
-param set-default CA_SV_TL3_MAXA 90
+param set-default CA_SV_TL3_MINA -45
+param set-default CA_SV_TL3_MAXA 45
 param set-default CA_SV_TL3_TD 90
 param set-default CA_SV_TL3_CT 1
 
-param set-default CA_SV_TL4_MINA -30
-param set-default CA_SV_TL4_MAXA 30
+param set-default CA_SV_TL4_MINA -20
+param set-default CA_SV_TL4_MAXA 20
 param set-default CA_SV_TL4_TD 0
 param set-default CA_SV_TL4_CT 1
 
-param set-default CA_SV_TL5_MINA -90
-param set-default CA_SV_TL5_MAXA 90
+param set-default CA_SV_TL5_MINA -45
+param set-default CA_SV_TL5_MAXA 45
 param set-default CA_SV_TL5_TD 90
 param set-default CA_SV_TL5_CT 1
 
-param set-default CA_SV_TL6_MINA -30
-param set-default CA_SV_TL6_MAXA 30
+param set-default CA_SV_TL6_MINA -20
+param set-default CA_SV_TL6_MAXA 20
 param set-default CA_SV_TL6_TD 0
 param set-default CA_SV_TL6_CT 1
 
-param set-default CA_SV_TL7_MINA -90
-param set-default CA_SV_TL7_MAXA 90
+param set-default CA_SV_TL7_MINA -45
+param set-default CA_SV_TL7_MAXA 45
 param set-default CA_SV_TL7_TD 90
 param set-default CA_SV_TL7_CT 1
 
@@ -180,6 +197,7 @@ param set-default PWM_MAIN_FUNC4 10006
 
 
 param set-default I2C_OUT_EN 1
+param set-default I2C_SV_REV 170         ## Reverse servo direction of 2, 4, 6, 8
 
 param set-default I2C_EC_FUNC1 102
 param set-default I2C_EC_FUNC2 101
@@ -270,3 +288,5 @@ param set-default I2C_SV_FAIL5 -1
 param set-default I2C_SV_FAIL6 -1
 param set-default I2C_SV_FAIL7 -1
 param set-default I2C_SV_FAIL8 -1
+
+
