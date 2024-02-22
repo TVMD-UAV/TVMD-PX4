@@ -69,6 +69,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/attitude_planner_meta_data.h>
 #include <uORB/uORB.h>
 
 #include "pfa_att_planner.hpp"
@@ -119,7 +120,7 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
 
-	uORB::PublicationMulti<vehicle_attitude_setpoint_s> _vehicle_planned_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};	/**< vehicle attitude setpoint */
+	uORB::Publication<attitude_planner_meta_data_s> _attitude_planner_meta_data_pub{ORB_ID(attitude_planner_meta_data)};	/**< vehicle attitude setpoint */
 
 	vehicle_thrust_setpoint_s _vehicle_thrust_setpoint{};
 	vehicle_torque_setpoint_s _vehicle_torque_setpoint{};

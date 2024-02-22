@@ -59,7 +59,7 @@ PFAAttitudeControl::PFAAttitudeControl():
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	_param_handles.num_agents = param_find("CA_MD_COUNT");
-	_vehicle_planned_attitude_setpoint_sub.advertise();
+	_attitude_planner_meta_data_pub.advertise();
 
 	for (int i = 0; i < NUM_AGENTS_MAX; ++i) {
 		char buffer[17];
@@ -82,7 +82,7 @@ PFAAttitudeControl::PFAAttitudeControl():
 PFAAttitudeControl::~PFAAttitudeControl()
 {
 	perf_free(_loop_perf);
-	_vehicle_planned_attitude_setpoint_sub.unadvertise();
+	_attitude_planner_meta_data_pub.unadvertise();
 }
 
 bool PFAAttitudeControl::init()
@@ -255,24 +255,28 @@ void PFAAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 	}
 
 	constrain_actuator_commands(torque_out, thrusts_out);
-	// TODO: bug exists: publishing all zero terms
-	// The calculation results of attitude planner seem to be incorrect
 
-	// vehicle_attitude_setpoint_s planned_attitude_setpoint;
-	// planned_attitude_setpoint.timestamp = hrt_absolute_time();
+	if (_param_enable_attitude_planner.get() > 0) {
+		// TODO: bug exists: publishing all zero terms
+		// The calculation results of attitude planner seem to be incorrect
 
-	// Quatf Q_d = Quatf(R_d);
-	// planned_attitude_setpoint.q_d[0] = Q_d(0);
-	// planned_attitude_setpoint.q_d[1] = Q_d(1);
-	// planned_attitude_setpoint.q_d[2] = Q_d(2);
-	// planned_attitude_setpoint.q_d[3] = Q_d(3);
+		attitude_planner_meta_data_s planner_meta;
+		planner_meta.timestamp = hrt_absolute_time();
 
-	// Eulerf euler_angles_d(Q_d);
-	// planned_attitude_setpoint.roll_body = euler_angles_d.phi();
-	// planned_attitude_setpoint.pitch_body = euler_angles_d.theta();
-	// planned_attitude_setpoint.yaw_body = euler_angles_d.psi();
+		Quatf q_d = Quatf(R_d);
+		planner_meta.q_d[0] = q_d(0);
+		planner_meta.q_d[1] = q_d(1);
+		planner_meta.q_d[2] = q_d(2);
+		planner_meta.q_d[3] = q_d(3);
 
-	// _vehicle_planned_attitude_setpoint_sub.publish(planned_attitude_setpoint);
+		planner._planner_meta.sat_force.copyTo(planner_meta.sat_thrust_body);
+		planner._planner_meta.k.copyTo(planner_meta.coplan_vector);
+		planner_meta.bisection_count = planner._planner_meta.bisection_count;
+		planner_meta.is_feasible = planner._planner_meta.is_feasible;
+		planner_meta.theta = planner._planner_meta.theta;
+
+		_attitude_planner_meta_data_pub.publish(planner_meta);
+	}
 }
 
 void PFAAttitudeControl::Run()

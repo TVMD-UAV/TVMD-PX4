@@ -15,6 +15,15 @@ using matrix::Dcmf;
 class PFAAttPlanner : public ModuleParams
 {
 public:
+	struct PlannerMeta {
+		float theta;
+		Vector3f k;
+		Vector3f sat_force;
+
+		uint8_t bisection_count;
+		uint8_t is_feasible;
+	} _planner_meta;
+
 	PFAAttPlanner(ModuleParams *parent) : ModuleParams(parent) {};
 	~PFAAttPlanner() = default;
 
@@ -33,14 +42,19 @@ public:
 		Dcmf & out_R_d, Vector3f & out_omega_d)
 	{
 		_sat_force = saturate_by_magnitude(in_thrust);
+		_planner_meta.sat_force = _sat_force;
 		if (calc_boundary_theta_bisection(in_R, _sat_force, _planned_theta, out_R_d)) {
 			// The reference attitude is not feasible
 			// TODO: calculate the desired angular velocity
 			// out_omega_d = (out_R_d.transpose() * in_R).diagonal() * in_omega;
+			_planner_meta.theta = _planned_theta;
+			_planner_meta.is_feasible = false;
 			return true;
 		} else {
 			out_R_d = in_R;
 			out_omega_d = in_omega;
+			_planner_meta.theta = 0;
+			_planner_meta.is_feasible = true;
 			return false;
 		}
 	}
@@ -123,6 +137,8 @@ protected:
 			const Vector3f k = is_b3r_and_f_r_almost_parallel ?
 				Vector3f(1.0f, 0.0f, 0.0f) :	// rotate along x-axis
 				b3r.cross(f_r).normalized(); 	// rotate along the plane of b3r and f_r
+
+			_planner_meta.k = k;
 
 			for (int i = 0; i < maximum_iteration; i++) {
 				out_R.col(2) = rotate_vector_by_theta(b3r, k, out_theta);

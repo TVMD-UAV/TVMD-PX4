@@ -238,6 +238,7 @@ void LoggedTopics::add_default_topics()
 		add_topic("vehicle_local_position_groundtruth", 20);
 	}
 	add_topic("control_allocation_meta_data");
+	add_topic("attitude_planner_meta_data");
 
 #ifdef CONFIG_ARCH_BOARD_PX4_SITL
 	add_topic("fw_virtual_attitude_setpoint");
