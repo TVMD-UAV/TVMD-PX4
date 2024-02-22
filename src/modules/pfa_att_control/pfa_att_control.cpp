@@ -214,9 +214,9 @@ void PFAAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 
 	Dcmf R_d;
 	Vector3f omega_d;
+	const Vector3f thrusts_NWU = Vector3f(thrusts(0), -thrusts(1), -thrusts(2));
 	if (_param_enable_attitude_planner.get() > 0) {
 		// TODO: the thrust in the attitude planner is in NWU frame
-		const Vector3f thrusts_NWU = Vector3f(thrusts(0), -thrusts(1), -thrusts(2));
 		planner.plan(thrusts_NWU, rot_ref, omega_ref, R_d, omega_d);
 	}
 	else {
@@ -246,7 +246,8 @@ void PFAAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 	Vector3f thrusts_out, torque_out;
 	if (_param_enable_attitude_planner.get() > 0) {
 		planner.output_wrench_projection(
-			torques + torque_offset, thrusts, torque_out, thrusts_out);
+			torques + torque_offset, thrusts_NWU, torque_out, thrusts_out);
+		thrusts_out = Vector3f(thrusts_out(0), -thrusts_out(1), -thrusts_out(2));
 	}
 	else {
 		torque_out = torques + torque_offset;

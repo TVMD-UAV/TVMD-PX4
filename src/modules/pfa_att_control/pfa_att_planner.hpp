@@ -48,10 +48,10 @@ public:
 	void output_wrench_projection(const Vector3f & in_torque, const Vector3f & in_thrust,
 		Vector3f & out_torque, Vector3f & out_thrust)
 	{
-		// All vectors are expressed in the FRD body frame
+		// All vectors are expressed in the NWU body frame
 		// Minimum z-axis thrust
 		out_thrust = in_thrust;
-		out_thrust(2) = (out_thrust(2) > -0.1f) ? -0.1f : out_thrust(2);
+		out_thrust(2) = (out_thrust(2) < 0.1f) ? 0.1f : out_thrust(2);
 
 		// Maximum thrust magnitude
 		out_thrust = saturate_by_magnitude(out_thrust);
@@ -69,6 +69,8 @@ public:
 
 		// Maximum torque according to the reachibility at the given thrust
 		// const Vector3f _sat_torque = saturate_by_magnitude(in_torque);
+
+		out_torque = in_torque;
 	}
 
 protected:
