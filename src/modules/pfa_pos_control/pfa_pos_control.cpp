@@ -209,8 +209,8 @@ void PFAPOSControl::stabilization_controller_6dof(
 		const vehicle_attitude_s &vehicle_attitude, const vehicle_local_position_s &vlocal_pos)
 {
 	trajectory_setpoint_s stab_traj_des = traj_des;
-	stab_traj_des.position[0] = vlocal_pos.x;
-	stab_traj_des.position[1] = vlocal_pos.y;
+	stab_traj_des.position[0] = 0;
+	stab_traj_des.position[1] = 0;
 	stab_traj_des.position[2] = vlocal_pos.z;
 	stab_traj_des.velocity[0] = 0;
 	stab_traj_des.velocity[1] = 0;

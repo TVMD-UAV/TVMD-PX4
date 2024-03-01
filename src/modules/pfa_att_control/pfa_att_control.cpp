@@ -216,8 +216,16 @@ void PFAAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 	Vector3f omega_d;
 	const Vector3f thrusts_NWU = Vector3f(thrusts(0), -thrusts(1), -thrusts(2));
 	if (_param_enable_attitude_planner.get() > 0) {
+		// Calculate nominal force
+		const Vector3f nominal_thrust = _checkAllFinite(Vector3f(_trajectory_setpoint.acceleration))
+			+ Vector3f(0, 0, -CONSTANTS_ONE_G);
+		const Vector3f nominal_thrust_NWU = Vector3f(nominal_thrust(0), -nominal_thrust(1), -nominal_thrust(2));
+
 		// TODO: the thrust in the attitude planner is in NWU frame
-		planner.plan(thrusts_NWU, rot_ref, omega_ref, R_d, omega_d);
+
+		planner.plan(nominal_thrust_NWU, rot_ref, omega_ref, R_d, omega_d);
+		// R_d = rot_ref;
+		// omega_d = omega_ref;
 	}
 	else {
 		R_d = rot_ref;
@@ -307,6 +315,7 @@ void PFAAttitudeControl::Run()
 
 			_vehicle_attitude_setpoint_sub.update(&_attitude_setpoint);
 			_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
+			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
 
 			control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
 		}
