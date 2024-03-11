@@ -162,3 +162,10 @@ PARAM_DEFINE_FLOAT(VEH_AGENT_MASS, 0.5421f);
  * @group PFA Attitude Control
  */
 PARAM_DEFINE_INT32(PFA_EN_ATT_PLAN, 0);
+
+/**
+ * Attitude planner relax ratio
+ *
+ * @group PFA Attitude Control
+ */
+PARAM_DEFINE_FLOAT(PFA_ATT_PLAN_S, 0.5f);

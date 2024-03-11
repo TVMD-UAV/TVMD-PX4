@@ -97,6 +97,8 @@ protected:
 	struct vehicle_params {
 		float sigma_a;
 		float sigma_b;
+		float s_sigma_a;
+		float s_sigma_b;
 		float f_max;
 		int n;
 		int n_x;
@@ -182,12 +184,9 @@ protected:
 		const Vector3f b3 = R.col(2);
 
 		// TODO: use tunable parameters instead of hard-coded values
-		const float sigma_a = _param.sigma_a * 0.5f;
-		const float sigma_b = _param.sigma_b * 0.5f;
-
 		const float z = f_r.dot(b3);
-		const float c_x = func_g2(_param.n_x, sigma_b, z, _param.f_max) + func_g2(_param.n_y, sigma_a, z, _param.f_max);
-		const float c_y = func_g2(_param.n_x, sigma_a, z, _param.f_max) + func_g2(_param.n_y, sigma_b, z, _param.f_max);
+		const float c_x = func_g2(_param.n_x, _param.s_sigma_b, z, _param.f_max) + func_g2(_param.n_y, _param.s_sigma_a, z, _param.f_max);
+		const float c_y = func_g2(_param.n_x, _param.s_sigma_a, z, _param.f_max) + func_g2(_param.n_y, _param.s_sigma_b, z, _param.f_max);
 
 		const float d = (f_r.dot(b1) / c_x) * (f_r.dot(b1) / c_x) + (f_r.dot(b2) / c_y) * (f_r.dot(b2) / c_y);
 		// printf("z: %f, c_x: %f, c_y: %f, d: %f\n", static_cast<double>(z), static_cast<double>(c_x), static_cast<double>(c_y), static_cast<double>(d));
@@ -199,7 +198,7 @@ protected:
 		if (sigma_k_bar >= M_PI_2_F)
 			return n_k * f_max;
 		else
-			return (int)(n_k > 0) * z * tanf(sigma_k_bar);
+			return (int)(n_k > 0) * (n_k / _param.n) * z * tanf(sigma_k_bar);
 	}
 
 private:
@@ -208,7 +207,8 @@ private:
 		(ParamFloat<px4::params::PFA_MAX_THR>)  _param_vehicle_max_thrust,
 		(ParamFloat<px4::params::CA_SV_TL0_MAXA>)  _param_servo_x_angle_max,
 		(ParamFloat<px4::params::CA_SV_TL1_MAXA>)  _param_servo_y_angle_max,
-		(ParamInt<px4::params::CA_MD_COUNT>)  _param_module_count
+		(ParamInt<px4::params::CA_MD_COUNT>)  _param_module_count,
+		(ParamFloat<px4::params::PFA_ATT_PLAN_S>)  _param_attitude_planner_s
 	)
 
 	void updateParams() override
@@ -218,8 +218,10 @@ private:
 		// retrieving vehicle parameters
 		// here we assume that all the modules have the same parameters
 		_param.f_max = _param_vehicle_max_thrust.get();
-		_param.sigma_a = _param_servo_x_angle_max.get() * M_DEG_TO_RAD_F;
-		_param.sigma_b = _param_servo_y_angle_max.get() * M_DEG_TO_RAD_F;
+		_param.sigma_a = _param_servo_x_angle_max.get() * M_DEG_TO_RAD_F;	// The constraint for force projection
+		_param.sigma_b = _param_servo_y_angle_max.get() * M_DEG_TO_RAD_F;	// The constraint for force projection
+		_param.s_sigma_a = _param_servo_x_angle_max.get() * M_DEG_TO_RAD_F * _param_attitude_planner_s.get();	// The relaxed constaint for Attainable Force Space Approximation
+		_param.s_sigma_b = _param_servo_y_angle_max.get() * M_DEG_TO_RAD_F * _param_attitude_planner_s.get();	// The relaxed constaint for Attainable Force Space Approximation
 
 		_param.n = _param_module_count.get();
 		_param.n_x = 0;
